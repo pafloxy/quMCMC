@@ -18,6 +18,7 @@ setup(
     url="https://github.com/pafloxy/quMCMC",
     python_requires=">=3.7",
     packages=["qumcmc"],
+    license='MIT',
     install_requires=[
         "qiskit>=0.29.0",
         "qiskit-machine-learning",
