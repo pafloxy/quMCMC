@@ -5,6 +5,7 @@
 from basic_utils import *
 from prob_dist import  *
 from typing import Dict
+from numpy import log2
 
 ###########################################################################################
 ## ENERGY MODEL ##
@@ -151,7 +152,7 @@ class IsingEnergyFunction:
     #         ]
     #     )
 
-    def get_kldiv(self, q: dict, beta: float= 1.0) -> float :
+    def get_kldiv(self, q: dict, beta: Union[float, None]= None) -> float :
         """ Return calculated KL-divergence of the boltzmann distribution wrt. a given distribution i.e 
             D_kl( boltzmann|| q)
 
@@ -176,7 +177,8 @@ class IsingEnergyFunction:
         q_vals = list(q.values())
         assert np.sum(q_vals) == 1 , " given distribution is not normalised "
         all_configs = [f"{k:0{self.num_spins}b}" for k in range(0, 2 ** (self.num_spins))]
-        assert set(q.keys()).issubset(all_configs) , " given distribution is not defined over all possible configurations " 
+        if  set(q.keys()) !=  set(all_configs):
+            raise ValueError(" given distribution is not defined over all possible configurations ") 
 
         ## re-order
         bltz_dist = DiscreteProbabilityDistribution(bltz_dist)
@@ -192,7 +194,7 @@ class IsingEnergyFunction:
 
         return sum(p[i] * log2(p[i]/q[i]) for i in range(len(p)) if p[i]!=0)
 
-    def get_jsdiv(self, q, beta: float= 1.0) -> float :
+    def get_jsdiv(self, q, beta: Union[float, None]= None) -> float :
         """ Return calculated KL-divergence of the boltzmann distribution wrt. a given distribution i.e 
             D_js( boltzmann ,  q)
 
@@ -202,12 +204,18 @@ class IsingEnergyFunction:
             beta : inverse temperature of the model 
         
         """        
-        ## check exact-sampling-status
+        ## check current beta and exact-sampling status
+        if beta == None : beta = self.beta
+        elif isinstance(beta, float):
+            if beta != self.beta : 
+                raise ValueError("Current beta is different from model beta. Please 'run_exact_sampling' with appropriate beta value ")
+                # bltz_dist = self.get_boltzmann_distribution(beta= beta)
         if self.exact_sampling_status :
-            p = self.boltzmann_pd
+            bltz_dist = self.boltzmann_pd
         else :             
-            p = self.get_boltzmann_distribution(beta= beta)
-
+            bltz_dist = self.get_boltzmann_distribution(beta= beta)
+        
+        
         ## checks
         q_vals = list(q.values())
         assert np.sum(q_vals) == 1 , " given distribution is not normalised "
@@ -216,7 +224,7 @@ class IsingEnergyFunction:
         
         ## create mixed distribution
         m = {}
-        for key in p.keys():
-            m[key] = 0.5 * ( p[key] + q[key] ) 
+        for key in bltz_dist.keys():
+            m[key] = 0.5 * ( bltz_dist[key] + q[key] ) 
         
-        return 0.5 * self.get_kldiv(p, m) + 0.5 * self.get_kldiv(q, m)
+        return 0.5 * self.get_kldiv(bltz_dist, m) + 0.5 * self.get_kldiv(q, m)
