@@ -8,7 +8,8 @@ import pandas as pd
 import seaborn as sns
 from IPython.display import Image
 from numpy import pi
-from tqdm import tqdm 
+from tqdm import tqdm, trange, tgrange
+from numpy import log2
 
 import itertools
 import math
@@ -106,6 +107,14 @@ def dict_magnetization_of_all_states(list_all_possible_states: list) -> dict:
     # print("dict_magnetization:"); print(dict_magnetization)
     return dict_magnetization
 
+
+def value_sorted_dict(dict_in, reverse=False):
+    """Sort the dictionary in ascending or descending(if reverse=True) order of values"""
+    sorted_dict = {
+        k: v
+        for k, v in sorted(dict_in.items(), key=lambda item: item[1], reverse=reverse)
+    }
+    return sorted_dict
 
 def value_sorted_dict(dict_in, reverse=False):
     """Sort the dictionary in ascending or descending(if reverse=True) order of values"""

@@ -11,6 +11,11 @@ class DiscreteProbabilityDistribution(dict):
     def __init__(self, distribution:dict) -> None :
 
         super().__init__(distribution) 
+    
+    def normalise(self, print_normalisation:bool= False):
+        r_sum = np.sum(list(self.values()))
+        for k in list(self.keys()) :
+            self[k] = self[k] / r_sum
 
     def value_sorted_dict(self, reverse=False):
         """ Sort the dictionary in ascending or descending(if reverse=True) order of values. """
