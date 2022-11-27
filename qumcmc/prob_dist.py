@@ -40,6 +40,7 @@ class DiscreteProbabilityDistribution(dict):
         Returns:
         avg
         """
+        #TODO: A faster implementation is possible by using numpy 
         len_dict = len(self)
         temp_list = [
             self[j] * dict_observable_val_at_states[j]
