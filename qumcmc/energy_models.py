@@ -91,7 +91,7 @@ class IsingEnergyFunction:
             'dict' corresponding to the distribution
         """
         all_configs = [f"{k:0{self.num_spins}b}" for k in range(0, 2 ** (self.num_spins))]
-        bltzmann_probs = dict( [ ( state, self.get_boltzmann_prob(state, beta= beta) ) for state in tqdm(all_configs, desc= 'calculating Boltzmann Distribution') ] )
+        bltzmann_probs = dict( [ ( state, self.get_boltzmann_prob(state, beta= beta) ) for state in tqdm(all_configs, desc= 'running over all possible configurations') ] )
         partition_sum=np.sum(np.array(list(bltzmann_probs.values())))
         prob_vals=list(np.array(list(bltzmann_probs.values()))*(1./partition_sum))
 
@@ -128,7 +128,9 @@ class IsingEnergyFunction:
         """
         self.exact_sampling_status = True
         self.beta = beta
+        print("Running Exact Sampling | Model beta : ", beta)
         self.get_boltzmann_distribution(beta= beta, save_distribution= True, return_dist= False)
+        print("saving distribution to model ...")
 
 
     # def get_observable_expectation(self, observable, beta: float = 1.0) -> float:
