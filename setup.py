@@ -10,7 +10,7 @@ from os import path
 setup(
     name="qumcmc",
     version="0.0.1",
-    description="Implementation of QAOA for Travelling Salesman Problem",
+    description="Implementation of quantum enhanced Markov Chain Monte Carlo",
     # long_description=long_description,
     long_description_content_type="text/markdown",
     author="Neelkanth Rawat, Rajarsi Pal, Manuel S. Rudolph",
