@@ -175,6 +175,7 @@ class IsingEnergyFunction:
         else :             
             bltz_dist = self.get_boltzmann_distribution(beta= beta)
         
+        
         ## check q 
         q_vals = list(q.values())
         assert np.sum(q_vals) == 1 , " given distribution is not normalised "
