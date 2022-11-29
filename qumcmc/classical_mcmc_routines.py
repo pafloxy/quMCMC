@@ -2,9 +2,9 @@
 ## IMPORTS ##
 ###########################################################################################
 
-from .basic_utils import *
-from .prob_dist import *
-from .energy_models import *
+from basic_utils import *
+from prob_dist import *
+from energy_models import *
 
 ###########################################################################################
 ## CLASSICAL MCMC ROUTINES ##
@@ -25,8 +25,8 @@ def classical_loop_accepting_state(
     s_init: str, s_prime: str, energy_s: float, energy_sprime: float, temp=1
 ) -> str:
     """
-    Accepts the state sprime with probability A ( i.e. min(1,exp(-(E(s')-E(s))/ temp) )
-    and s_init with probability 1-A
+    Accepts the state "sprime" with probability A ( i.e. min(1,exp(-(E(s')-E(s))/ temp) )
+    and s_init with probability 1-A.
     """
     delta_energy = energy_sprime - energy_s  # E(s')-E(s)
     exp_factor = np.exp(-delta_energy / temp)
@@ -43,7 +43,7 @@ def classical_mcmc(
     N_hops: int,
     num_spins: int,
     initial_state: str,
-    num_elems: int,
+    num_elems: int,# i dont think it is being used anywhere. 
     model,
     return_last_n_states=500,
     return_both=False,

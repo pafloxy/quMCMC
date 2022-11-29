@@ -2,10 +2,10 @@
 ## IMPORTS ##
 ###########################################################################################
 
-from .basic_utils import *
-from .prob_dist import *
-from .energy_models import *
-from .classical_mcmc_routines import *
+from basic_utils import *
+from prob_dist import *
+from energy_models import *
+from classical_mcmc_routines import *
 
 ################################################################################################
 ##  QUANTUM CIRCUIT CONSTRUCTION ##
@@ -75,7 +75,7 @@ def fn_qc_h1(num_spins: int, gamma, alpha, h, delta_time) -> QuantumCircuit :
     return qc
 
 
-def fn_qc_h2(J:np.array(), alpha:float, gamma:float, delta_time=0.8) -> QuantumCircuit :
+def fn_qc_h2(J:np.array, alpha:float, gamma:float, delta_time=0.8) -> QuantumCircuit :
     """
     Create a Quantum Circuit for time-evolution under
     hamiltonain H2 (described in the paper)
@@ -124,7 +124,24 @@ def combine_2_qc(init_qc: QuantumCircuit, trottered_qc: QuantumCircuit) -> Quant
     qc = qc.compose(trottered_qc)
     return qc
 
-
+######## classical loop acceptance state #####
+def classical_loop_accepting_state(
+    s_init: str, s_prime: str, energy_s: float, energy_sprime: float, temp=1
+) -> str:
+    """
+    Accepts the state "sprime" with probability A ( i.e. min(1,exp(-(E(s')-E(s))/ temp) )
+    and s_init with probability 1-A.
+    """
+    delta_energy = energy_sprime - energy_s  # E(s')-E(s)
+    exp_factor = np.exp(-delta_energy / temp)
+    acceptance = min(
+        1, exp_factor
+    )  # for both QC case as well as uniform random strategy, the transition matrix Pij is symmetric!
+    # coin_flip=np.random.choice([True, False], p=[acceptance, 1-acceptance])
+    new_state = s_init
+    if acceptance >= np.random.uniform(0, 1):
+        new_state = s_prime
+    return new_state
 ################################################################################################
 ##  QUANTUM MARKOV CHAIN CONSTRUCTION ##
 ################################################################################################
@@ -146,8 +163,8 @@ def run_qc_quantum_step(
     
     """
 
-    h = model.get_h()
-    J = model.get_J()
+    h = model.get_h# and not model.get_h() anymore
+    J = model.get_J# and not model.get_J() anymore
 
     # init_qc=initialise_qc(n_spins=n_spins, bitstring='1'*n_spins)
     gamma = np.round(np.random.uniform(0.25, 0.6), decimals=2)
