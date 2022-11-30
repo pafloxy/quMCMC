@@ -235,7 +235,7 @@ def quantum_enhanced_mcmc(
     states_obt.append(current_state)
     ## intialise observables
     list_after_transition = []
-    list_after_acceptance_step = []
+    list_state_mchain_is_in = []
     poss_states=states(num_spins=num_spins)
 
     for i in tqdm(range(0, N_hops), desc='runnning quantum MCMC steps . ..' ):
@@ -252,7 +252,7 @@ def quantum_enhanced_mcmc(
             current_state, s_prime, energy_s, energy_sprime, temp=temp
         )
         current_state = next_state
-        list_after_acceptance_step.append(current_state)
+        list_state_mchain_is_in.append(current_state)
         states_obt.append(current_state)
         ## reinitiate
         qc_s = initialise_qc(n_spins=num_spins, bitstring=current_state)
@@ -268,7 +268,7 @@ def quantum_enhanced_mcmc(
         to_return = (
             dict_count_return_last_n_states,
             list_after_transition,
-            list_after_acceptance_step,
+            list_state_mchain_is_in,
         )
     else:
         to_return = dict_count_return_last_n_states

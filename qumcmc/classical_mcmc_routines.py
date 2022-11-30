@@ -59,7 +59,7 @@ def classical_mcmc(
     return_last_n_states: (int) Number of states in the end of the M.Chain you want to consider for prob distn (default value is last 500)
     return_both (default=False): If set to True, in addition to dict_count_return_lst_n_states, also returns 2 lists:
                                 "list_after_transition: list of states s' obtained after transition step s->s' " and
-                                "list_after_acceptance_step: list of states accepted after the accepance step".
+                                "list_state_mchain_is_in: list of states markov chain was in".
     RETURNS:
     --------
     Last 'dict_count_return_last_n_states' elements of states so collected (default value=500). one can then deduce the distribution from it!
@@ -74,7 +74,7 @@ def classical_mcmc(
     ## initialiiise observables
     # observable_dict = dict([ (elem, []) for elem in observables ])
     list_after_transition = []
-    list_after_acceptance_step = []
+    list_state_mchain_is_in = []
     poss_states=states(num_spins=num_spins)# list of all possible states
 
     for i in tqdm(range(0, N_hops), desc= 'running MCMC steps ...'):
@@ -88,7 +88,7 @@ def classical_mcmc(
             current_state, s_prime, energy_s, energy_sprime, temp=temp
         )
         current_state = next_state
-        list_after_acceptance_step.append(current_state)
+        list_state_mchain_is_in.append(current_state)
         states_obt.append(current_state)
         # WE DON;T NEED TO DO THIS! # reinitiate
         # qc_s=initialise_qc(n_spins=num_spins, bitstring=current_state)
@@ -100,7 +100,7 @@ def classical_mcmc(
         to_return = (
             dict_count_return_last_n_states,
             list_after_transition,
-            list_after_acceptance_step,
+            list_state_mchain_is_in,
         )
     else:
         to_return = dict_count_return_last_n_states
