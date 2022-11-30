@@ -2,10 +2,10 @@
 ## IMPORTS ##
 ###########################################################################################
 
-from .basic_utils import *
-from .prob_dist import *
-from .energy_models import *
-from .classical_mcmc_routines import *
+from basic_utils import *
+from prob_dist import *
+from energy_models import *
+from classical_mcmc_routines import *
 
 ################################################################################################
 ##  QUANTUM CIRCUIT CONSTRUCTION ##
@@ -75,7 +75,7 @@ def fn_qc_h1(num_spins: int, gamma, alpha, h, delta_time) -> QuantumCircuit :
     return qc
 
 
-def fn_qc_h2(J:np.array(), alpha:float, gamma:float, delta_time=0.8) -> QuantumCircuit :
+def fn_qc_h2(J:np.array, alpha:float, gamma:float, delta_time=0.8) -> QuantumCircuit :
     """
     Create a Quantum Circuit for time-evolution under
     hamiltonain H2 (described in the paper)
@@ -124,7 +124,24 @@ def combine_2_qc(init_qc: QuantumCircuit, trottered_qc: QuantumCircuit) -> Quant
     qc = qc.compose(trottered_qc)
     return qc
 
-
+######## classical loop acceptance state #####
+def classical_loop_accepting_state(
+    s_init: str, s_prime: str, energy_s: float, energy_sprime: float, temp=1
+) -> str:
+    """
+    Accepts the state "sprime" with probability A ( i.e. min(1,exp(-(E(s')-E(s))/ temp) )
+    and s_init with probability 1-A.
+    """
+    delta_energy = energy_sprime - energy_s  # E(s')-E(s)
+    exp_factor = np.exp(-delta_energy / temp)
+    acceptance = min(
+        1, exp_factor
+    )  # for both QC case as well as uniform random strategy, the transition matrix Pij is symmetric!
+    # coin_flip=np.random.choice([True, False], p=[acceptance, 1-acceptance])
+    new_state = s_init
+    if acceptance >= np.random.uniform(0, 1):
+        new_state = s_prime
+    return new_state
 ################################################################################################
 ##  QUANTUM MARKOV CHAIN CONSTRUCTION ##
 ################################################################################################
@@ -146,8 +163,8 @@ def run_qc_quantum_step(
     
     """
 
-    h = model.get_h()
-    J = model.get_J()
+    h = model.get_h# and not model.get_h() anymore
+    J = model.get_J# and not model.get_J() anymore
 
     # init_qc=initialise_qc(n_spins=n_spins, bitstring='1'*n_spins)
     gamma = np.round(np.random.uniform(0.25, 0.6), decimals=2)
@@ -187,7 +204,7 @@ def quantum_enhanced_mcmc(
     model: IsingEnergyFunction,
     alpha,
     return_last_n_states=500,
-    return_both=False,
+    return_additional_lists=False,
     temp=1,
 ):
     """
@@ -218,7 +235,7 @@ def quantum_enhanced_mcmc(
     states_obt.append(current_state)
     ## intialise observables
     list_after_transition = []
-    list_after_acceptance_step = []
+    list_state_mchain_is_in = []
     poss_states=states(num_spins=num_spins)
 
     for i in tqdm(range(0, N_hops), desc='runnning quantum MCMC steps . ..' ):
@@ -235,7 +252,7 @@ def quantum_enhanced_mcmc(
             current_state, s_prime, energy_s, energy_sprime, temp=temp
         )
         current_state = next_state
-        list_after_acceptance_step.append(current_state)
+        list_state_mchain_is_in.append(current_state)
         states_obt.append(current_state)
         ## reinitiate
         qc_s = initialise_qc(n_spins=num_spins, bitstring=current_state)
@@ -247,11 +264,11 @@ def quantum_enhanced_mcmc(
     dict_count_return_last_n_states=dict(zip(poss_states,[0]*(len(poss_states))))
     dict_count_return_last_n_states.update(dict(Counter(states_obt[-return_last_n_states:])))
 
-    if return_both:
+    if return_additional_lists:
         to_return = (
             dict_count_return_last_n_states,
             list_after_transition,
-            list_after_acceptance_step,
+            list_state_mchain_is_in,
         )
     else:
         to_return = dict_count_return_last_n_states

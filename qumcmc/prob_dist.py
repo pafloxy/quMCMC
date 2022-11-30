@@ -2,7 +2,7 @@
 ## IMPORTS ##
 ###########################################################################################
 
-from .basic_utils import *
+from basic_utils import *
 from typing import Dict
 
 class DiscreteProbabilityDistribution(dict):
