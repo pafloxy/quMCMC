@@ -204,7 +204,7 @@ def quantum_enhanced_mcmc(
     model: IsingEnergyFunction,
     alpha,
     return_last_n_states=500,
-    return_both=False,
+    return_additional_lists=False,
     temp=1,
 ):
     """
@@ -264,7 +264,7 @@ def quantum_enhanced_mcmc(
     dict_count_return_last_n_states=dict(zip(poss_states,[0]*(len(poss_states))))
     dict_count_return_last_n_states.update(dict(Counter(states_obt[-return_last_n_states:])))
 
-    if return_both:
+    if return_additional_lists:
         to_return = (
             dict_count_return_last_n_states,
             list_after_transition,
