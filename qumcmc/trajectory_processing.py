@@ -15,8 +15,8 @@ class trajectory_processing:
         self.all_poss_samples=states(num_spins=len(list_of_samples_sampled[0]))
         # import states function from basic utils.py
         # from qumcmc.prob_dist import *
-        self.dict_count=self.count_states_occurence(list_samples=self.list_samples)
-        self.dict_distn=self.empirical_distn(list_samples=self.list_samples)# not efficient! that is why I dont want inplace replacement
+        self.dict_count=self.count_states_occurence(list_samples= self.list_samples)
+        self.dict_distn=self.empirical_distn()# not efficient! that is why I dont want inplace replacement
     
     def count_states_occurence(self,list_samples)->DiscreteProbabilityDistribution:
         ''' 
