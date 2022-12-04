@@ -12,8 +12,13 @@ class DiscreteProbabilityDistribution(dict):
 
         super().__init__(distribution) 
     
-    def normalise(self, print_normalisation:bool= False):
+    def _normalise(self, print_normalisation:bool= False):
+        """ Normalise the given disribution 
+            NOTE: works inplace 
+        """
+        
         r_sum = np.sum(list(self.values()))
+        if print_normalisation : print('Normalisation : ', r_sum)
         for k in list(self.keys()) :
             self[k] = self[k] / r_sum
 
@@ -32,7 +37,19 @@ class DiscreteProbabilityDistribution(dict):
             for k, v in sorted(self.items(), key=lambda item: item[0], reverse=reverse)
         }
         return sorted_dict
+   
+    def get_truncated_distribution(self, epsilon:float = 0.00001):
         
+        return_dict = {}
+        index_probable_elements = [ indx for indx, b in enumerate( np.array(list(self.values())) > epsilon ) if b ]
+        states = list(self.keys())
+        probs = list(self.values())
+
+        for indx in index_probable_elements:
+            return_dict[states[indx]] = probs[indx]
+        
+        return return_dict
+            
     def expectation(self, dict_observable_val_at_states: dict):
         """
         new version:
