@@ -8,9 +8,9 @@ class trajectory_processing:
     Method given here (but not limited to) can
     be come in handy for calculations of interest.
     '''
-    def __init__(self, list_of_samples_sampled:list, num_mcmc_steps:int):
+    def __init__(self, list_of_samples_sampled:list):
         self.list_samples=list_of_samples_sampled
-        self.num_mcmc_steps=num_mcmc_steps
+        self.num_mcmc_steps= len(list_of_samples_sampled)
         self.num_spins=len(list_of_samples_sampled[0])
         self.all_poss_samples=states(num_spins=len(list_of_samples_sampled[0]))
         # import states function from basic utils.py
@@ -30,7 +30,7 @@ class trajectory_processing:
         dict_count.update(dict(Counter(list_samples)))
         return dict_count
     
-    def empirical_distn(self, list_samples)->DiscreteProbabilityDistribution:
+    def empirical_distn(self)->DiscreteProbabilityDistribution:
         ''' 
         Function to get dict of empirical distn from list of samples M.Chain was in.
 
@@ -39,7 +39,7 @@ class trajectory_processing:
         dict_distn=DiscreteProbabilityDistribution(
             dict(zip(self.all_poss_samples,[0]*(len(self.all_poss_samples))))
         )
-        update_with=DiscreteProbabilityDistribution(dict(Counter(list_samples)))
+        update_with=DiscreteProbabilityDistribution(dict(Counter(self.list_samples)))
         update_with.normalise()
         dict_distn.update(update_with)
         return dict_distn
