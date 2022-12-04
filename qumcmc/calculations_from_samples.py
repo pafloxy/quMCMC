@@ -1,9 +1,9 @@
 from .prob_dist import *
 
 
-class calns_from_samples:
+class trajectory_processing:
     '''  
-    A class to use list_of_samples for different caln. 
+    A class to use list_of_samples for different calculations 
     
     Method given here (but not limited to) can
     be come in handy for calculations of interest.
