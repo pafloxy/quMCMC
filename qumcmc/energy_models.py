@@ -2,8 +2,8 @@
 ## IMPORTS ##
 ###########################################################################################
 
-from basic_utils import *
-from prob_dist import  *
+from .basic_utils import *
+from .prob_dist import  *
 from typing import Dict
 from numpy import log2
 

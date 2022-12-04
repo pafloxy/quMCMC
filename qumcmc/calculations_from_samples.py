@@ -1,4 +1,4 @@
-from qumcmc.prob_dist import *
+from .prob_dist import *
 
 
 class calns_from_samples:

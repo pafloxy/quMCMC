@@ -2,9 +2,9 @@
 ## IMPORTS ##
 ###########################################################################################
 
-from basic_utils import *
-from prob_dist import *
-from energy_models import *
+from .basic_utils import *
+from .prob_dist import *
+from .energy_models import *
 
 ###########################################################################################
 ## CLASSICAL MCMC ROUTINES ##
