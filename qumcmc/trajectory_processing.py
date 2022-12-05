@@ -65,3 +65,6 @@ class trajectory_processing:
                 for ii in range(1, len(self.list_samples) + 1)
             ]
         )
+
+    def average_of_some_observable(self,dict_observable_val_at_states: dict):
+        return avg(dict_probabilities=self.dict_distn, dict_observable_val_at_states=dict_observable_val_at_states)
