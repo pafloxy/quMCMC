@@ -17,7 +17,7 @@ class IsingEnergyFunction:
     """ A class to build the Ising Energy Function from data  
     """
 
-    def __init__(self, J: np.array, h: np.array, beta: float = 1.0) -> None:
+    def __init__(self, J: np.array, h: np.array, beta: float = 1.0, name:str = None) -> None:
         """
             ARGS:
             ----
@@ -31,6 +31,9 @@ class IsingEnergyFunction:
         self.num_spins = len(h)
         self.exact_sampling_status = False
         self.alpha = np.sqrt(self.num_spins) / np.sqrt( sum([J[i][j]**2 for i in range(self.num_spins) for j in range(i)]) + sum([h[j]**2 for j in range(self.num_spins)])  )
+
+        if name == None: 
+            self.name = 'JK_random'
     
     @property
     def get_J(self):
@@ -44,7 +47,7 @@ class IsingEnergyFunction:
     def model_summary(self, plot= True):
         
         print("=============================================")
-        print("                   MODEL                     ")
+        print("                   MODEL :"+str(self.name) )
         print("=============================================")
         
         
