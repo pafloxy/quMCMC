@@ -6,6 +6,8 @@ from .basic_utils import *
 from .prob_dist import  *
 from typing import Dict
 from numpy import log2
+import seaborn as sns
+
 
 ###########################################################################################
 ## ENERGY MODEL ##
@@ -28,6 +30,7 @@ class IsingEnergyFunction:
         self.beta = beta
         self.num_spins = len(h)
         self.exact_sampling_status = False
+        self.alpha = np.sqrt(self.num_spins) / np.sqrt( sum([J[i][j]**2 for i in range(self.num_spins) for j in range(i)]) + sum([h[j]**2 for j in range(self.num_spins)])  )
     
     @property
     def get_J(self):
@@ -36,6 +39,31 @@ class IsingEnergyFunction:
     @property
     def get_h(self):
         return self.h
+
+    @property
+    def model_summary(self, plot= True):
+        
+        print("=============================================")
+        print("                   MODEL                     ")
+        print("=============================================")
+        
+        
+        print("Non-zero Interactions (J) : ", np.count_nonzero(self.J) )
+        print("Non-zero Bias (h) : ", np.count_nonzero(self.h) )
+        print("---------------------------------------------")
+
+        print("Average Interaction Strength : ", np.mean(self.J))
+        print("Average Bias Strength : ", np.mean(self.h))
+        print("alpha : ", self.alpha )
+        print("model beta : ", self.beta )
+        print("---------------------------------------------")
+
+
+        sns.set()
+        if plot:
+            plt.figure(figsize=(16,10))
+            sns.heatmap(self.J, square= True, annot= True, cbar= True)
+            
 
     def get_energy(self, state: Union[str, np.array]) -> float:
         """ Returns the energy of a given state
