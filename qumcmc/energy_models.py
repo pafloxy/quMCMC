@@ -47,7 +47,7 @@ class IsingEnergyFunction:
     def model_summary(self, plot= True):
         
         print("=============================================")
-        print("                   MODEL :"+str(self.name) )
+        print("                   MODEL : "+str(self.name) )
         print("=============================================")
         
         
