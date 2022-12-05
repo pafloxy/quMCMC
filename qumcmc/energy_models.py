@@ -34,6 +34,7 @@ class IsingEnergyFunction:
 
         if name == None: 
             self.name = 'JK_random'
+        else : self.name = name 
     
     @property
     def get_J(self):
@@ -43,11 +44,11 @@ class IsingEnergyFunction:
     def get_h(self):
         return self.h
 
-    @property
+    # @property
     def model_summary(self, plot= True):
         
         print("=============================================")
-        print("                   MODEL : "+str(self.name) )
+        print("            MODEL : "+str(self.name) )
         print("=============================================")
         
         
@@ -55,8 +56,8 @@ class IsingEnergyFunction:
         print("Non-zero Bias (h) : ", np.count_nonzero(self.h) )
         print("---------------------------------------------")
 
-        print("Average Interaction Strength : ", np.mean(self.J))
-        print("Average Bias Strength : ", np.mean(self.h))
+        print("Average Interaction Strength <J> : ", np.mean(self.J))
+        print("Average Bias Strength <h>: ", np.mean(self.h))
         print("alpha : ", self.alpha )
         print("model beta : ", self.beta )
         print("---------------------------------------------")
