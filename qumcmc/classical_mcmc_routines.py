@@ -70,7 +70,7 @@ def classical_mcmc(
     all_configs = [f"{k:0{model.num_spins}b}" for k in range(0, 2 ** (model.num_spins))]
     if initial_state == None : 
         initial_state = np.random.choice(all_configs)
-    print("starting with: ", initial_state)
+    
     # current_state=f'{np.random.randint(0,num_elems):0{num_spins}b}'# bin_next_state=f'{next_state:0{num_spins}b}'
     current_state = initial_state
     print("starting with: ", current_state)
@@ -80,11 +80,11 @@ def classical_mcmc(
     # observable_dict = dict([ (elem, []) for elem in observables ])
     list_after_transition = []
     list_state_mchain_is_in = []
-    poss_states=states(num_spins=num_spins)# list of all possible states
+    poss_states=states(num_spins=model.num_spins)# list of all possible states
 
     for i in tqdm(range(0, N_hops), desc= 'running MCMC steps ...'):
         # get sprime
-        s_prime = classical_transition(num_spins)
+        s_prime = classical_transition(model.num_spins)
         list_after_transition.append(s_prime)
         # accept/reject s_prime
         energy_s = model.get_energy(current_state)
