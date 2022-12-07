@@ -45,7 +45,7 @@ def classical_mcmc(
     # initial_state: str,
     # num_elems: int,# i dont think it is being used anywhere. 
     model: IsingEnergyFunction ,
-    initial_state: Union[None, str],
+    initial_state: Union[None, str] = None,
     return_last_n_states=500,
     return_additional_lists=False,
     temp=1,

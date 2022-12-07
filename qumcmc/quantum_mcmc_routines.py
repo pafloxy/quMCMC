@@ -202,7 +202,7 @@ def quantum_enhanced_mcmc(
     # num_elems: int,
     model: IsingEnergyFunction,
     # alpha,
-    initial_state: Union[None, str],
+    initial_state: Union[None, str] = None,
     return_last_n_states=500,
     return_additional_lists=False,
     temp=1,
