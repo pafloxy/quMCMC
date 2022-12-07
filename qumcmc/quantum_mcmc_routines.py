@@ -198,11 +198,11 @@ def run_qc_quantum_step(
 
 def quantum_enhanced_mcmc(
     N_hops: int,
-    num_spins: int,
-    initial_state: str,
-    num_elems: int,
+    # num_spins: int,
+    # num_elems: int,
     model: IsingEnergyFunction,
-    alpha,
+    # alpha,
+    initial_state: Union[None, str],
     return_last_n_states=500,
     return_additional_lists=False,
     temp=1,
@@ -213,10 +213,7 @@ def quantum_enhanced_mcmc(
     ARGS:
     ----
     Nhops: Number of time you want to run mcmc
-    num_spins: number of spins
-    num_elems: 2**(num_spins)
     model:
-    alpha:
     return_last_n_states:
     return_both:
     temp:
@@ -227,22 +224,25 @@ def quantum_enhanced_mcmc(
     
     """
     states_obt = []
+    all_configs = [f"{k:0{model.num_spins}b}" for k in range(0, 2 ** (model.num_spins))]
+    if initial_state == None : 
+        initial_state = np.random.choice(all_configs)
     print("starting with: ", initial_state)
 
     ## initialise quantum circuit to current_state
-    qc_s = initialise_qc(n_spins=num_spins, bitstring=initial_state)
+    qc_s = initialise_qc(n_spins= model.num_spins, bitstring=initial_state)
     current_state = initial_state
     states_obt.append(current_state)
     ## intialise observables
     list_after_transition = []
     list_state_mchain_is_in = []
-    poss_states=states(num_spins=num_spins)
+    poss_states=states(num_spins=model.num_spins)
 
     for i in tqdm(range(0, N_hops), desc='runnning quantum MCMC steps . ..' ):
         # print("i: ", i)
         # get sprime
         s_prime = run_qc_quantum_step(
-            qc_initialised_to_s=qc_s, model=model, alpha=alpha, n_spins=num_spins
+            qc_initialised_to_s=qc_s, model=model, alpha=model.alpha, n_spins= model.num_spins
         )
         list_after_transition.append(s_prime)
         # accept/reject s_prime
@@ -255,7 +255,7 @@ def quantum_enhanced_mcmc(
         list_state_mchain_is_in.append(current_state)
         states_obt.append(current_state)
         ## reinitiate
-        qc_s = initialise_qc(n_spins=num_spins, bitstring=current_state)
+        qc_s = initialise_qc(n_spins= model.num_spins, bitstring=current_state)
 
     # dict_count_return_last_n_states = Counter(
     #     states[-return_last_n_states:]

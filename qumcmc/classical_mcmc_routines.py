@@ -41,10 +41,11 @@ def classical_loop_accepting_state(
 
 def classical_mcmc(
     N_hops: int,
-    num_spins: int,
-    initial_state: str,
-    num_elems: int,# i dont think it is being used anywhere. 
-    model,
+    # num_spins: int,
+    # initial_state: str,
+    # num_elems: int,# i dont think it is being used anywhere. 
+    model: IsingEnergyFunction ,
+    initial_state: Union[None, str],
     return_last_n_states=500,
     return_additional_lists=False,
     temp=1,
@@ -66,6 +67,10 @@ def classical_mcmc(
     
     """
     states_obt = []
+    all_configs = [f"{k:0{model.num_spins}b}" for k in range(0, 2 ** (model.num_spins))]
+    if initial_state == None : 
+        initial_state = np.random.choice(all_configs)
+    print("starting with: ", initial_state)
     # current_state=f'{np.random.randint(0,num_elems):0{num_spins}b}'# bin_next_state=f'{next_state:0{num_spins}b}'
     current_state = initial_state
     print("starting with: ", current_state)

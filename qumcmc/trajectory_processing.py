@@ -40,7 +40,7 @@ class trajectory_processing:
             dict(zip(self.all_poss_samples,[0]*(len(self.all_poss_samples))))
         )
         update_with=DiscreteProbabilityDistribution(dict(Counter(self.list_samples)))
-        update_with.normalise()
+        update_with._normalise()
         dict_distn.update(update_with)
         return dict_distn
     
