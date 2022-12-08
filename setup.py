@@ -34,11 +34,7 @@ setup(
         "notebook",
         "matplotlib",
         "seaborn",
-        "itertools",
-        "collections-extended",
-        "typing",
-        "math"
-
+        "collections-extended"
     ],
     zip_safe=True,
 )
