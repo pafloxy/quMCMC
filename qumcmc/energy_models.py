@@ -180,7 +180,7 @@ class IsingEnergyFunction:
 
         return sum(
             [
-                self.boltzmann_pd(config)
+                self.boltzmann_pd[config]
                 * observable(config)
 
                 for config in all_configs
