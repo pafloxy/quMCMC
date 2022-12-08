@@ -45,7 +45,7 @@ class IsingEnergyFunction:
         return self.h
 
     # @property
-    def model_summary(self, plot= True):
+    def model_summary(self, plot= True) :
         
         print("=============================================")
         print("            MODEL : "+str(self.name) )
@@ -66,7 +66,7 @@ class IsingEnergyFunction:
         sns.set()
         if plot:
             plt.figure(figsize=(16,10))
-            sns.heatmap(self.J, square= True, annot= True, cbar= True)
+            sns.heatmap(self.J, square= True, annot= False, cbar= True)
             
 
     def get_energy(self, state: Union[str, np.array]) -> float:

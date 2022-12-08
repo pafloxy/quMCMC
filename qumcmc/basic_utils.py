@@ -15,7 +15,7 @@ import itertools
 import math
 from collections import Counter
 from typing import Iterable, Mapping, Optional, Union
-from collections import OrderedDict
+from collections_extended import IndexedDict
 
 import matplotlib.pyplot as plt
 
@@ -60,7 +60,7 @@ def merge_2_dict(dict1, dict2):
 
 def sort_dict_by_keys(dict_in:dict):
   
-  return dict(OrderedDict(sorted(dict_in.items())))
+  return dict(IndexedDict(sorted(dict_in.items())))
 
 
 def states(num_spins: int) -> list:

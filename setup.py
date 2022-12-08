@@ -35,7 +35,7 @@ setup(
         "matplotlib",
         "seaborn",
         "itertools",
-        "collections",
+        "collections-extended",
         "typing",
         "math"
 
