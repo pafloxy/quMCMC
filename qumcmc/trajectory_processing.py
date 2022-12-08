@@ -68,3 +68,25 @@ class trajectory_processing:
 
     def average_of_some_observable(self,dict_observable_val_at_states: dict):
         return avg(dict_probabilities=self.dict_distn, dict_observable_val_at_states=dict_observable_val_at_states)
+    
+    def running_js_divergence(self, actual_boltz_distn:DiscreteProbabilityDistribution):
+       
+        list_chain_state_accepted = self.list_samples
+        num_nhops=len(list_chain_state_accepted)
+        list_js_after_each_step=[]
+        possible_states=list(actual_boltz_distn.keys())
+        time_sec1=[];time_sec2=[]
+        num_spins=len(list_chain_state_accepted[0])
+        poss_states=states(num_spins=num_spins) 
+        for step_num in tqdm(range(100,num_nhops, 20)): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
+
+            temp_distn_model=dict(zip(possible_states,[0]*(len(possible_states))))  ##pafloxy
+
+            temp_distn_model.update(get_distn(list_chain_state_accepted[50:step_num]))  ##pafloxy : starting from 50, neglecting ieffect of initial states 
+
+            js_temp=js_divergence(actual_boltz_distn,temp_distn_model)
+
+            list_js_after_each_step.append(js_temp)
+
+
+        return list_js_after_each_step
