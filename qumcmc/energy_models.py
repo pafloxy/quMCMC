@@ -165,26 +165,27 @@ class IsingEnergyFunction:
         print("saving distribution to model ...")
 
 
-    # def get_observable_expectation(self, observable, beta: float = 1.0) -> float:
-    #     """ Return expectation value of a classical observables
+    def get_observable_expectation(self, observable) -> float:
+        """ Return expectation value of a classical observables
 
-    #         ARGS :
-    #         ----
-    #         observable: Must be a function of the spin configuration which takes an 'np.array' of binary elements as input argument and returns a 'float'
-    #         beta: inverse temperature
+            ARGS :
+            ----
+            observable: Must be a function of the spin configuration which takes an 'np.array' / 'str' of binary elements as input argument and returns a 'float'
+            beta: inverse temperature
 
-    #     """
-    #     all_configs = np.array(list(itertools.product([1, 0], repeat=self.num_spins)))
-    #     partition_sum = sum([self.get_boltzmann_prob(config) for config in all_configs])
+        """
+        # all_configs = np.array(list(itertools.product([1, 0], repeat=self.num_spins)))
+        all_configs = [f"{k:0{self.num_spins}b}" for k in range(0, 2 ** (self.num_spins))]
+        
 
-    #     return sum(
-    #         [
-    #             self.get_boltzmann_prob(config)
-    #             * observable(config)
-    #             * (1 / partition_sum)
-    #             for config in all_configs
-    #         ]
-    #     )
+        return sum(
+            [
+                self.boltzmann_pd(config)
+                * observable(config)
+
+                for config in all_configs
+            ]
+        )
 
     def get_kldiv(self, q: dict, beta: Union[float, None]= None) -> float :
         """ Return calculated KL-divergence of the boltzmann distribution wrt. a given distribution i.e 
