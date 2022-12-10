@@ -5,48 +5,108 @@
 ## basic imports ##
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from IPython.display import Image
-from numpy import pi
-from tqdm import tqdm, trange, tgrange
-from numpy import log2
 
-import itertools
-import math
+from tqdm import tqdm
+
+
 from collections import Counter
-from typing import Iterable, Mapping, Optional, Union
 from collections_extended import IndexedDict
-
+from typing import Optional, List, Dict
+from dataclasses import dataclass
 import matplotlib.pyplot as plt
 
 ## qiskit imports ##
-from qiskit import *
-from qiskit import (  # , InstructionSet
-    IBMQ,
-    Aer,
-    ClassicalRegister,
-    QuantumCircuit,
-    QuantumRegister,
-    quantum_info,
-)
-from qiskit.algorithms import *
-from qiskit.circuit.library import *
-from qiskit.circuit.library import RXGate, RZGate, RZZGate
-from qiskit.circuit.quantumregister import Qubit
-from qiskit.extensions import HamiltonianGate, UnitaryGate
-from qiskit.quantum_info import Pauli, Statevector, partial_trace, state_fidelity
-from qiskit.utils import QuantumInstance
-from qiskit.visualization import (
-    plot_bloch_multivector,
-    plot_bloch_vector,
-    plot_histogram,
-    plot_state_qsphere,
-)
+from qiskit import Aer
+# from qiskit import (  # , InstructionSet
+#     IBMQ,
+#     Aer,
+#     ClassicalRegister,
+#     QuantumCircuit,
+#     QuantumRegister,
+#     quantum_info,
+# )
+# from qiskit.algorithms import *
+# from qiskit.circuit.library import *
+# from qiskit.circuit.library import RXGate, RZGate, RZZGate
+# from qiskit.circuit.quantumregister import Qubit
+# from qiskit.extensions import HamiltonianGate, UnitaryGate
+# from qiskit.quantum_info import Pauli, Statevector, partial_trace, state_fidelity
+# from qiskit.utils import QuantumInstance
+# from qiskit.visualization import (
+#     plot_bloch_multivector,
+#     plot_bloch_vector,
+#     plot_histogram,
+#     plot_state_qsphere,
+# )
 
 ## qiskit-backends ##
 qsm = Aer.get_backend("qasm_simulator")
 stv = Aer.get_backend("statevector_simulator")
 aer = Aer.get_backend("aer_simulator")
+
+
+
+
+
+
+###########################################################################################
+## MCMC Chain and States ##
+###########################################################################################
+
+
+@dataclass
+class MCMCState:
+    bitstring: str
+    accepted: bool
+    
+@dataclass(init=True)
+class MCMCChain:
+    def __init__(self, states: Optional[List[MCMCState]] = None):
+        if len(states) is None:
+            self._states: List[MCMCState] = []
+            self._current_state: MCMCState = None
+        else:
+            self._states = states
+            self._current_state : MCMCState = next((s for s in self._states[::-1] if s.accepted), None)
+
+
+    def add_state(self, state: MCMCState):
+        if state.accepted:
+            self._current_state = state
+        self._states.append(state)
+
+
+    @property
+    def states(self):
+        return self._states
+
+    
+    @property
+    def current_state(self):
+        return self._current_state
+
+
+    @property
+    def accepted_states(self) -> List[str]:
+        return [s.bitstring for s in self._states if s.accepted]
+
+
+    def get_accepted_dict(self, normalize: bool=False, until_index: int = -1) -> Counter[str, int]:
+        if until_index != -1:
+            accepted_states = [s.bitstring for s in self._states[:until_index] if s.accepted]
+        else:
+            accepted_states = [s.bitstring for s in self._states if s.accepted]
+
+        if normalize:
+            length = len(accepted_states)
+            accepted_dict = Counter({s: count/length for s, count in Counter(accepted_states).items()})
+        else:
+            accepted_dict = Counter(accepted_states)
+
+        return accepted_dict
+
+
+
 
 ###########################################################################################
 ## HELPER FUNCTIONS ##
@@ -59,7 +119,6 @@ def merge_2_dict(dict1, dict2):
     return({**dict1,**dict2})
 
 def sort_dict_by_keys(dict_in:dict):
-  
   return dict(IndexedDict(sorted(dict_in.items())))
 
 
@@ -296,9 +355,9 @@ def plot_dict_of_running_avg_observable(
 
 def plot_bargraph_desc_order(
     desc_val_order_dict_in: dict,
-    label: str,
     normalise_complete_data: bool = False,
-    plot_first_few: int = 0,
+    plot_first_few: int = -1,
+    **bar_kwargs
 ):
     width = 1.0
     list_keys = list(desc_val_order_dict_in.keys())
@@ -307,10 +366,10 @@ def plot_bargraph_desc_order(
         list_vals = np.divide(
             list_vals, sum(list_vals)
         )  # np.divide(list(vals), sum(vals))
-    if plot_first_few != 0:
-        plt.bar(list_keys[0:plot_first_few], list_vals[0:plot_first_few], label=label)
+    if plot_first_few != -1:
+        plt.bar(list_keys[0:plot_first_few], list_vals[0:plot_first_few], **bar_kwargs)
     else:
-        plt.bar(list_keys, list_vals, label=label)
+        plt.bar(list_keys, list_vals, **bar_kwargs)
     plt.xticks(rotation=90)
 
 
