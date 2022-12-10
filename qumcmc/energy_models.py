@@ -56,8 +56,8 @@ class IsingEnergyFunction:
         print("Non-zero Bias (h) : ", np.count_nonzero(self.h) )
         print("---------------------------------------------")
 
-        print("Average Interaction Strength <J> : ", np.mean(self.J))
-        print("Average Bias Strength <h>: ", np.mean(self.h))
+        print("Average Interaction Strength <|J|> : ", np.mean(np.abs(self.J)))
+        print("Average Bias Strength <|h|>: ", np.mean(np.abs(self.h)))
         print("alpha : ", self.alpha )
         print("model beta : ", self.beta )
         print("---------------------------------------------")
