@@ -1,16 +1,22 @@
 ###########################################################################################
 ## IMPORTS ##
 ###########################################################################################
+import numpy as np
+# from .basic_utils import *
+# from .prob_dist import *
+from .energy_models import IsingEnergyFunction
+from typing import Dict, List, Optional
+from tqdm import tqdm
+from collections import Counter
+from .basic_utils import MCMCChain, MCMCState
 
-from .basic_utils import *
-from .prob_dist import *
-from .energy_models import *
+
 
 ###########################################################################################
 ## CLASSICAL MCMC ROUTINES ##
 ###########################################################################################
 
-def classical_transition(num_spins: int) -> str:
+def get_random_state(num_spins: int) -> str:
     """
     Returns s' , obtained via uniform transition rule!
     """
@@ -21,34 +27,28 @@ def classical_transition(num_spins: int) -> str:
     bin_next_state = f"{next_state:0{num_spins}b}"
     return bin_next_state
 
-def classical_loop_accepting_state(
-    s_init: str, s_prime: str, energy_s: float, energy_sprime: float, temp=1
-) -> str:
+
+def test_accept(
+    energy_s: float, energy_sprime: float, temperature: float = 1.
+) -> MCMCState:
     """
     Accepts the state "sprime" with probability A ( i.e. min(1,exp(-(E(s')-E(s))/ temp) )
     and s_init with probability 1-A.
     """
     delta_energy = energy_sprime - energy_s  # E(s')-E(s)
-    exp_factor = np.exp(-delta_energy / temp)
+    exp_factor = np.exp(-delta_energy / temperature)
     acceptance = min(
         1, exp_factor
     )  # for both QC case as well as uniform random strategy, the transition matrix Pij is symmetric!
-    # coin_flip=np.random.choice([True, False], p=[acceptance, 1-acceptance])
-    new_state = s_init
-    if acceptance >= np.random.uniform(0, 1):
-        new_state = s_prime
-    return new_state
+
+    return acceptance > np.random.rand()
+
 
 def classical_mcmc(
-    N_hops: int,
-    # num_spins: int,
-    # initial_state: str,
-    # num_elems: int,# i dont think it is being used anywhere. 
+    n_hops: int,
     model: IsingEnergyFunction ,
-    initial_state: Union[None, str] = None,
-    return_last_n_states=500,
-    return_additional_lists=False,
-    temp=1,
+    initial_state: Optional[str] = None,
+    temperature: float = 1.,
 ):
     """
     ARGS:
@@ -66,48 +66,32 @@ def classical_mcmc(
     Last 'dict_count_return_last_n_states' elements of states so collected (default value=500). one can then deduce the distribution from it!
     
     """
-    states_obt = []
-    all_configs = [f"{k:0{model.num_spins}b}" for k in range(0, 2 ** (model.num_spins))]
-    if initial_state == None : 
-        initial_state = np.random.choice(all_configs)
-    
-    # current_state=f'{np.random.randint(0,num_elems):0{num_spins}b}'# bin_next_state=f'{next_state:0{num_spins}b}'
-    current_state = initial_state
-    print("starting with: ", current_state)
-    states_obt.append(current_state)
+    num_spins = model.num_spins
 
-    ## initialiiise observables
-    # observable_dict = dict([ (elem, []) for elem in observables ])
-    list_after_transition = []
-    list_state_mchain_is_in = []
-    poss_states=states(num_spins=model.num_spins)# list of all possible states
-
-    for i in tqdm(range(0, N_hops), desc= 'running MCMC steps ...'):
-        # get sprime
-        s_prime = classical_transition(model.num_spins)
-        list_after_transition.append(s_prime)
-        # accept/reject s_prime
-        energy_s = model.get_energy(current_state)
-        energy_sprime = model.get_energy(s_prime)
-        next_state = classical_loop_accepting_state(
-            current_state, s_prime, energy_s, energy_sprime, temp=temp
-        )
-        current_state = next_state
-        list_state_mchain_is_in.append(current_state)
-        states_obt.append(current_state)
-        # WE DON;T NEED TO DO THIS! # reinitiate
-        # qc_s=initialise_qc(n_spins=num_spins, bitstring=current_state)
-
-    # returns dictionary of occurences for last "return_last_n_states" states
-    dict_count_return_last_n_states=dict(zip(poss_states,[0]*(len(poss_states))))
-    dict_count_return_last_n_states.update(dict(Counter(states_obt[-return_last_n_states:])))
-    if return_additional_lists:
-        to_return = (
-            dict_count_return_last_n_states,
-            list_after_transition,
-            list_state_mchain_is_in,
-        )
+    if initial_state is None : 
+        initial_state = MCMCState(get_random_state(num_spins), accepted=True)
     else:
-        to_return = dict_count_return_last_n_states
+        initial_state = MCMCState(initial_state, accepted=True)
+    
+    current_state: MCMCState = initial_state
+    energy_s = model.get_energy(current_state.bitstring)
+    print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
-    return to_return
+    mcmc_chain = MCMCChain([current_state])
+
+
+    for _ in tqdm(range(0, n_hops), desc= 'running MCMC steps ...'):
+        # get sprime
+        s_prime = get_random_state(num_spins)
+        # accept/reject s_prime
+        energy_sprime = model.get_energy(s_prime)   # to make this scalable, I think you need to calculate energy ratios.
+        accepted = test_accept(
+            energy_s, energy_sprime, temperature=temperature
+        )
+        mcmc_chain.add_state(MCMCState(s_prime, accepted))
+        if accepted:
+            current_state = mcmc_chain.current_state
+            energy_s = model.get_energy(current_state.bitstring)
+        
+    return mcmc_chain
+
