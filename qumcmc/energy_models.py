@@ -64,7 +64,7 @@ class IsingEnergyFunction:
         print("---------------------------------------------")
 
 
-        sns.set()
+        # sns.set()
         if plot:
             plt.figure(figsize=(16,10))
             sns.heatmap(self.J, square= True, annot= False, cbar= True)
