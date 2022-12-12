@@ -156,4 +156,4 @@ def js_divergence(dict_p:dict,dict_q:dict, prelim_check=True):
     #print("val_m:");print(val_m)
     m=dict(zip(list(p.keys()),val_m))
     #print("m:");print(m)
-    return 0.5 * (kl_divergence(p, m, prelim_check=False) +  kl_divergence(q, m, prelim_check=False))
+    return 0.5 * (kl_divergence(p, m) +  kl_divergence(q, m ))
