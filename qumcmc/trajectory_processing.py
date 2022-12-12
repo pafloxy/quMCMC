@@ -78,11 +78,11 @@ class trajectory_processing:
         time_sec1=[];time_sec2=[]
         num_spins=len(list_chain_state_accepted[0])
         poss_states=states(num_spins=num_spins) 
-        for step_num in tqdm(range(100,num_nhops, 20)): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
+        for step_num in tqdm(range(100,num_nhops, 100)): ##pafloxy : starting at 100 instead of 0 , neglecting intital states m.chain was in
 
-            temp_distn_model=dict(zip(possible_states,[0]*(len(possible_states))))  ##pafloxy
+            temp_distn_model=dict(zip(possible_states,[0]*(len(possible_states))))
 
-            temp_distn_model.update(get_distn(list_chain_state_accepted[50:step_num]))  ##pafloxy : starting from 50, neglecting ieffect of initial states 
+            temp_distn_model.update(get_distn(list_chain_state_accepted[50:step_num]))  ##pafloxy : starting from 50, neglecting inital state m.chain was in 
 
             js_temp=js_divergence(actual_boltz_distn,temp_distn_model)
 

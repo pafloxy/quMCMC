@@ -60,8 +60,6 @@ def fn_qc_h1(num_spins: int, gamma, alpha, h, delta_time) -> QuantumCircuit :
     alpha: float
     h: list of field at each site
     delta_time: total evolution time time/num_trotter_steps
-
-
     """
     a = gamma
     # print("a:",a)
@@ -98,14 +96,15 @@ def fn_qc_h2(J:np.array, alpha:float, gamma:float, delta_time=0.8) -> QuantumCir
     """
     num_spins = np.shape(J)[0]
     qc_for_evol_h2 = QuantumCircuit(num_spins)
-    theta_list = [
-        -2 * J[j, j + 1] * (1 - gamma) * alpha * delta_time
-        for j in range(0, num_spins - 1)
-    ]
+    # calculating theta_jk
+    upper_triag_without_diag=np.triu(J,k=1)
+    theta_array=(-2*(1-gamma)*alpha*delta_time)*upper_triag_without_diag
     for j in range(0, num_spins - 1):
-        qc_for_evol_h2.rzz(
-            theta_list[j], qubit1=num_spins - 1 - j, qubit2=num_spins - 1 - (j + 1)
-        )
+        for k in range(j+1,num_spins):
+            angle=theta_array[j,k]
+            qc_for_evol_h2.rzz(
+                angle, qubit1=num_spins - 1 - j, qubit2=num_spins - 1 - k
+            )
     # print("qc for fn_qc_h2 is:"); print(qc_for_evol_h2.draw())
     return qc_for_evol_h2
 
