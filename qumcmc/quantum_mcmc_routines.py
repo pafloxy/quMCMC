@@ -51,8 +51,6 @@ def fn_qc_h1(num_spins: int, gamma, alpha, h, delta_time) -> QuantumCircuit :
     alpha: float
     h: list of field at each site
     delta_time: total evolution time time/num_trotter_steps
-
-
     """
     a = gamma
     # print("a:",a)
