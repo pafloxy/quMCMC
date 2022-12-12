@@ -1,11 +1,12 @@
 ###########################################################################################
 ## IMPORTS ##
 ###########################################################################################
-
-from .basic_utils import *
-from .prob_dist import  *
-from typing import Dict
-from numpy import log2
+import numpy as np
+import matplotlib.pyplot as plt
+from .basic_utils import plot_bargraph_desc_order
+from .prob_dist import  value_sorted_dict, DiscreteProbabilityDistribution
+from typing import Union
+from tqdm import tqdm
 import seaborn as sns
 
 
@@ -56,8 +57,8 @@ class IsingEnergyFunction:
         print("Non-zero Bias (h) : ", np.count_nonzero(self.h) )
         print("---------------------------------------------")
 
-        print("Average Interaction Strength <J> : ", np.mean(self.J))
-        print("Average Bias Strength <h>: ", np.mean(self.h))
+        print("Average Interaction Strength <|J|> : ", np.mean(np.abs(self.J)))
+        print("Average Bias Strength <|h|>: ", np.mean(np.abs(self.h)))
         print("alpha : ", self.alpha )
         print("model beta : ", self.beta )
         print("---------------------------------------------")
@@ -228,7 +229,7 @@ class IsingEnergyFunction:
         p = list(bltz_dist.values())
         q = list(q.values())
 
-        return sum(p[i] * log2(p[i]/q[i]) for i in range(len(p)) if p[i]!=0)
+        return sum(p[i] * np.log2(p[i]/q[i]) for i in range(len(p)) if p[i]!=0)
 
     def get_jsdiv(self, q, beta: Union[float, None]= None) -> float :
         """ Return calculated KL-divergence of the boltzmann distribution wrt. a given distribution i.e 

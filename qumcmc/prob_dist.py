@@ -77,7 +77,7 @@ class DiscreteProbabilityDistribution(dict):
 #1. KL divergence
 #2. JS divergence
 
-def kl_divergence(dict_p:dict,dict_q:dict, prelim_check=True):
+def kl_divergence(dict_p: dict, dict_q: dict):
     ''' 
     Returns KL divergence KL(p||q);
 
@@ -92,24 +92,34 @@ def kl_divergence(dict_p:dict,dict_q:dict, prelim_check=True):
     dict_p and dict_q have same keys and that both the distributions are
     normalised then user can set it to 'False'.
     '''
-    if prelim_check:
-        #check for whether or not dict_p and dict_q have same keys
-        keys_p,keys_q=list(dict_p.keys()),list(dict_q.keys())# reason why not inplace
-        keys_p.sort();keys_q.sort()
-        assert keys_p==keys_q, "keys of both the dictionaries dont match!"
+    # if prelim_check:
+    #     #check for whether or not dict_p and dict_q have same keys
+    #     keys_p,keys_q=list(dict_p.keys()),list(dict_q.keys())# reason why not inplace
+    #     keys_p.sort();keys_q.sort()
+    #     assert keys_p==keys_q, "keys of both the dictionaries dont match!"
 
-        # check for whether values add to 1.
-        eps=1e-6
-        sum_vals_p=np.sum(list(dict_p.values()))
-        assert np.abs(sum_vals_p-1.0)<=eps, "sum of values of dict_p must be 1."
-        sum_vals_q=np.sum(list(dict_q.values()))
-        assert np.abs(sum_vals_q-1.0)<=eps, "sum of values of dict_q must be 1."
+    #     # check for whether values add to 1.
+    #     eps=1e-6
+    #     sum_vals_p=np.sum(list(dict_p.values()))
+    #     assert np.abs(sum_vals_p-1.0)<=eps, "sum of values of dict_p must be 1."
+    #     sum_vals_q=np.sum(list(dict_q.values()))
+    #     assert np.abs(sum_vals_q-1.0)<=eps, "sum of values of dict_q must be 1."
     
-    #prep for caln
-    p=DiscreteProbabilityDistribution(dict_p).index_sorted_dict()
-    q=DiscreteProbabilityDistribution(dict_q).index_sorted_dict()
-    p_arr,q_arr=np.array(list(p.values())).reshape((len(p))), np.array(list(q.values())).reshape((len(q)))
-    return np.sum(np.where(p_arr>10**-6,p_arr*np.log2(p_arr/q_arr),0.))
+    # #prep for caln
+    # p=DiscreteProbabilityDistribution(dict_p).index_sorted_dict()
+    # q=DiscreteProbabilityDistribution(dict_q).index_sorted_dict()
+    # p_arr,q_arr=np.array(list(p.values())).reshape((len(p))), np.array(list(q.values())).reshape((len(q)))
+    # return np.sum(np.where(p_arr>10**-6,p_arr*np.log2(p_arr/q_arr),0.))
+
+    KL = 0
+    for bitstring, p_data in dict_p.items():
+        if bitstring in dict_q.keys():
+            KL += p_data * np.log(p_data) - p_data * np.log(
+                max(1e-6, dict_q[bitstring])
+            )
+        else:
+            KL += p_data * np.log(p_data) - p_data * np.log(1e-6)
+    return KL
 
 def js_divergence(dict_p:dict,dict_q:dict, prelim_check=True):
     ''' 
