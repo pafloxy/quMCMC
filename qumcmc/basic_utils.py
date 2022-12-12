@@ -91,7 +91,7 @@ class MCMCChain:
         return [s.bitstring for s in self._states if s.accepted]
 
 
-    def get_accepted_dict(self, normalize: bool=False, until_index: int = -1) -> Counter[str, int]:
+    def get_accepted_dict(self, normalize: bool=False, until_index: int = -1):# -> Counter[str, int]:
         if until_index != -1:
             accepted_states = [s.bitstring for s in self._states[:until_index] if s.accepted]
         else:
