@@ -1,5 +1,5 @@
 from .prob_dist import *
-
+from .energy_models import IsingEnergyFunction
 
 class trajectory_processing:
     '''  
@@ -146,7 +146,7 @@ def calculate_runnning_magnetisation(mcmc_chain: MCMCChain, skip_steps: int = 1)
     return list_mag_after_each_step
 
         
-def get_trajectory_statistics(mcmc_chain: MCMCChain):
+def get_trajectory_statistics(mcmc_chain: MCMCChain, model: IsingEnergyFunction, verbose:bool= False):
 
     trajectory = mcmc_chain.states
 
@@ -156,16 +156,23 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain):
 
     acceptance_statistic = [];hamming_statistic = [];energy_statistic = []
     
+    current_state_index = 0; proposed_state_index = current_state_index + 1
 
-    for s in range(len(trajectory[:-1])):
+    while proposed_state_index < len(trajectory) :
 
-        acceptance_statistic.append( acceptance_prob(trajectory[s], trajectory[s+1]) )
+        
+        if verbose : print('trans: '+ str(trajectory[current_state_index].bitstring) + ' -> '+ str(trajectory[proposed_state_index].bitstring)+" status: "+str(trajectory[proposed_state_index].accepted)  )
 
-        hamming_statistic.append( hamming_diff(trajectory[s], trajectory[s+1]) )
+        acceptance_statistic.append( acceptance_prob(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        energy_statistic.append( energy_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        hamming_statistic.append( hamming_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
 
-        energy_statistic.append( energy_diff(trajectory[s], trajectory[s+1]) )
-    
-    
+        
+        if trajectory[proposed_state_index].accepted :
+            current_state_index =  proposed_state_index
+        
+        proposed_state_index += 1
+
     trajectory_statistics = {'energy':  np.array(energy_statistic), 'hamming':np.array(hamming_statistic), 'acceptance' :np.array(acceptance_statistic)}
-     
+    
     return trajectory_statistics
