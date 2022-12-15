@@ -34,6 +34,7 @@ setup(
         "notebook",
         "matplotlib",
         "seaborn",
+        "qulacs",
         "collections-extended"
     ],
     zip_safe=True,
