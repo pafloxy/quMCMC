@@ -39,10 +39,6 @@ class MCMCState:
             self.bitstring = self.var + self.fixed
         else : raise ValueError("Updated 'var' should be of len "+str(self.len_var))
 
-###################################################################################
-## HELPER SUBROUTINES FOR QUANTUM MCMC ##
-###################################################################################  
-
 
 
 ###################################################################################
