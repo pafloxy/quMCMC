@@ -150,10 +150,10 @@ class RestrictedSampling:
             # state_obtained= [f"{state:0{model.num_spins}b}" for state in state_obtained]
             return f"{state_obtained:0{self.model.num_spins}b}"
 
-        def run_quantum_enhanced_mcmc(self, iterations):
+        def run_quantum_enhanced_mcmc(self, iterations:int , verbose:bool = False):
 
                 energy_s = self.model.get_energy(self.current_state.bitstring)
-                print('current state: ', self.current_state)
+                if verbose: print('current state: ', self.current_state)
                 qc_s = initialise_qc(n_spins= self.model.num_spins, bitstring= self.current_state.bitstring )
                 for _ in tqdm(range(0, iterations), desc='runnning quantum MCMC steps . ..' ):
                         
@@ -163,7 +163,7 @@ class RestrictedSampling:
                         qc_initialised_to_s=qc_s
                         )
                         s_prime = MCMCState(s_prime[:self.len_var], s_prime[self.len_var:])
-                        print('s_prime:', s_prime)
+                        if verbose: print('s_prime:', s_prime)
 
                         # accept/reject s_prime
                         energy_sprime = self.model.get_energy(s_prime.bitstring)
