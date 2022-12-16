@@ -72,6 +72,11 @@ class DiscreteProbabilityDistribution(dict):
             temp_list
         )  # earlier I had np.mean here , which is wrong (obviously! duh!)
         return avg
+    
+    ## TODO
+    def marginalise(indices: List[int]):
+        pass
+
         
 ### SOME FUNCTIONS.
 #1. KL divergence
