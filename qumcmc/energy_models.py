@@ -18,7 +18,7 @@ class IsingEnergyFunction:
     """ A class to build the Ising Energy Function from data  
     """
 
-    def __init__(self, J: np.array, h: np.array, beta: float = 1.0, name:str = None) -> None:
+    def __init__(self, J: np.array, h: np.array, name:str = None) -> None:
         """
             ARGS:
             ----
@@ -28,9 +28,9 @@ class IsingEnergyFunction:
         """
         self.J = J
         self.h = h
-        self.beta = beta
+        # self.beta = beta
         self.num_spins = len(h)
-        self.exact_sampling_status = False
+        # self.exact_sampling_status = False
         self.alpha = np.sqrt(self.num_spins) / np.sqrt( sum([J[i][j]**2 for i in range(self.num_spins) for j in range(i)]) + sum([h[j]**2 for j in range(self.num_spins)])  )
 
         if name == None: 
@@ -53,14 +53,14 @@ class IsingEnergyFunction:
         print("=============================================")
         
         
-        print("Non-zero Interactions (J) : ", np.count_nonzero(self.J) )
-        print("Non-zero Bias (h) : ", np.count_nonzero(self.h) )
+        print("Non-zero Interactions (J) : "+ str( int(np.count_nonzero(self.J) /2)) + ' / '+str( int( 0.5 * self.num_spins * (self.num_spins - 1))) )
+        print("Non-zero Bias (h) : "+ str( int(np.count_nonzero(self.h) )) + ' / ' + str( self.num_spins ) )
         print("---------------------------------------------")
 
         print("Average Interaction Strength <|J|> : ", np.mean(np.abs(self.J)))
         print("Average Bias Strength <|h|>: ", np.mean(np.abs(self.h)))
         print("alpha : ", self.alpha )
-        print("model beta : ", self.beta )
+    
         print("---------------------------------------------")
 
 
@@ -93,7 +93,7 @@ class IsingEnergyFunction:
             )
 
 
-    def get_boltzmann_prob(
+    def get_boltzmann_factor(
         self, state: Union[str, np.array], beta: float = 1.0
     ) -> float:
 
@@ -106,6 +106,43 @@ class IsingEnergyFunction:
         
         """
         return np.exp(-1 * beta * self.get_energy(state))
+
+
+
+###########################################################################################
+## EXACT SAMPLING on MODEL ##
+###########################################################################################
+
+class Exact_Sampling(IsingEnergyFunction):
+
+    def __init__(self, model: IsingEnergyFunction,  beta:float= 1.0) -> None :
+
+        super().__init__(model.get_J, model.get_h, model.name)
+    
+        self.beta = beta
+        self.exact_sampling_status = False
+        self.run_exact_sampling(self.beta)
+
+    def sampling_summary(self, plot_dist:bool=True):
+        
+        if self.exact_sampling_status :
+            tmp = np.array(list(self.boltzmann_pd.values()))
+            count_non_zero = len(tmp[tmp > 0.01])
+            
+            print("=============================================")
+            print("     MODEL : "+str(self.name)+" |  beta : "+str(self.beta) )
+            print("=============================================")
+            
+            
+            print("Num Most Probable States : " + str( count_non_zero )   )
+            print("Entropy : " + str( self.get_entropy() ))
+            print("---------------------------------------------")
+
+            if plot_dist:
+                plot_bargraph_desc_order(self.boltzmann_pd, label= 'Boltzmann Dist.', plot_first_few= count_non_zero)
+
+        else:
+            raise RuntimeError("Please Run Exact Sampling at any specified temperature first")
 
     def get_boltzmann_distribution(
         self, beta:float = 1.0, sorted:bool = False, save_distribution:bool = False , return_dist:bool= True, plot_dist:bool = False
@@ -124,7 +161,7 @@ class IsingEnergyFunction:
             'dict' corresponding to the distribution
         """
         all_configs = [f"{k:0{self.num_spins}b}" for k in range(0, 2 ** (self.num_spins))]
-        bltzmann_probs = dict( [ ( state, self.get_boltzmann_prob(state, beta= beta) ) for state in tqdm(all_configs, desc= 'running over all possible configurations') ] )
+        bltzmann_probs = dict( [ ( state, self.get_boltzmann_factor(state, beta= beta) ) for state in tqdm(all_configs, desc= 'running over all possible configurations') ] )
         partition_sum=np.sum(np.array(list(bltzmann_probs.values())))
         prob_vals=list(np.array(list(bltzmann_probs.values()))*(1./partition_sum))
 
@@ -145,7 +182,7 @@ class IsingEnergyFunction:
                 return bpd
 
 
-    def run_exact_sampling(self, beta:float = 1.0) -> None :
+    def run_exact_sampling(self, beta:float ) -> None :
         """ Running this function executes the 'get_boltzmann_distribution' function, thus exhaustively enumerating all possible
             configurations of the system and saving the ditribution as an attribute 'boltzmann_pd'. 
 
@@ -161,7 +198,7 @@ class IsingEnergyFunction:
         """
         self.exact_sampling_status = True
         self.beta = beta
-        print("Running Exact Sampling | Model beta : ", beta)
+        print("Running Exact Sampling | beta : ", beta)
         self.get_boltzmann_distribution(beta= beta, save_distribution= True, return_dist= False)
         print("saving distribution to model ...")
 
@@ -187,6 +224,17 @@ class IsingEnergyFunction:
                 for config in all_configs
             ]
         )
+
+    def get_entropy(self):
+        tmp = sorted(np.array(list(self.boltzmann_pd.values())), reverse= True)
+        entropy = 0
+        for val in tmp :
+            if val > 0.00001 :
+                entropy += -1 * val * np.log2(val)
+            else: 
+                return entropy
+                
+
 
     def get_kldiv(self, q: dict, beta: Union[float, None]= None) -> float :
         """ Return calculated KL-divergence of the boltzmann distribution wrt. a given distribution i.e 

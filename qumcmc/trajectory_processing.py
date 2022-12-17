@@ -1,5 +1,5 @@
 from .prob_dist import *
-from .energy_models import IsingEnergyFunction
+from .energy_models import IsingEnergyFunction, ExactSampling
 
 class trajectory_processing:
     '''  
@@ -145,12 +145,12 @@ def calculate_runnning_magnetisation(mcmc_chain: MCMCChain, skip_steps: int = 1)
     
     return list_mag_after_each_step
 
-        
-def get_trajectory_statistics(mcmc_chain: MCMCChain, model: IsingEnergyFunction, verbose:bool= False):
+from typing import Union        
+def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFunction, ExactSampling], verbose:bool= False):
 
     trajectory = mcmc_chain.states
 
-    acceptance_prob = lambda si, sf: min(1, model.get_boltzmann_prob(sf.bitstring) / model.get_boltzmann_prob(si.bitstring) )
+    acceptance_prob = lambda si, sf: min(1, model.get_boltzmann_factor(sf.bitstring) / model.get_boltzmann_factor(si.bitstring) )
     hamming_diff = lambda si, sf: hamming_dist(si.bitstring, sf.bitstring)
     energy_diff = lambda si, sf: model.get_energy(sf.bitstring) - model.get_energy(si.bitstring)
 
