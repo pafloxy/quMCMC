@@ -1,5 +1,5 @@
 from .prob_dist import *
-from .energy_models import IsingEnergyFunction, ExactSampling
+from .energy_models import IsingEnergyFunction, Exact_Sampling
 
 class trajectory_processing:
     '''  
@@ -146,7 +146,7 @@ def calculate_runnning_magnetisation(mcmc_chain: MCMCChain, skip_steps: int = 1)
     return list_mag_after_each_step
 
 from typing import Union        
-def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFunction, ExactSampling], verbose:bool= False):
+def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFunction, Exact_Sampling], verbose:bool= False):
 
     trajectory = mcmc_chain.states
 
