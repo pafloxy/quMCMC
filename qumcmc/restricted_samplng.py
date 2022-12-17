@@ -169,7 +169,7 @@ class RestrictedSampling:
                         if accepted:
                                 s_prime.accepted = accepted
                                 self.current_state = s_prime
-                                print('current state: ', self.current_state)
+                                # print('current state: ', self.current_state)
                                 energy_s = self.model.get_energy(self.current_state.bitstring)
                         
                         self.mcmc_chain.add_state(s_prime)
