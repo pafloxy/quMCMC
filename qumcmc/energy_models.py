@@ -118,20 +118,19 @@ class IsingEnergyFunction:
 
         self.h[index] = new_param
 
-
 ###########################################################################################
 ## EXACT SAMPLING on MODEL ##
 ###########################################################################################
 
 class Exact_Sampling(IsingEnergyFunction):
 
-    def __init__(self, model: IsingEnergyFunction,  beta:float= 1.0) -> None :
+    def __init__(self, model: IsingEnergyFunction,  beta:float= 1.0, verbose= False) -> None :
 
         super().__init__(model.get_J, model.get_h, model.name)
     
         self.beta = beta
         self.exact_sampling_status = False
-        self.run_exact_sampling(self.beta)
+        self.run_exact_sampling(self.beta, verbose= verbose)
 
     def sampling_summary(self, plot_dist:bool=True):
         
@@ -155,7 +154,7 @@ class Exact_Sampling(IsingEnergyFunction):
             raise RuntimeError("Please Run Exact Sampling at any specified temperature first")
 
     def get_boltzmann_distribution(
-        self, beta:float = 1.0, sorted:bool = False, save_distribution:bool = False , return_dist:bool= True, plot_dist:bool = False
+        self, beta:float = 1.0, sorted:bool = False, save_distribution:bool = False , return_dist:bool= True, plot_dist:bool = False, verbose:bool= False
     ) -> dict :
         """ Get normalised boltzmann distribution over states 
 
@@ -171,7 +170,7 @@ class Exact_Sampling(IsingEnergyFunction):
             'dict' corresponding to the distribution
         """
         all_configs = [f"{k:0{self.num_spins}b}" for k in range(0, 2 ** (self.num_spins))]
-        bltzmann_probs = dict( [ ( state, self.get_boltzmann_factor(state, beta= beta) ) for state in tqdm(all_configs, desc= 'running over all possible configurations') ] )
+        bltzmann_probs = dict( [ ( state, self.get_boltzmann_factor(state, beta= beta) ) for state in tqdm(all_configs, desc= 'running over all possible configurations', disable= not verbose ) ] )
         partition_sum=np.sum(np.array(list(bltzmann_probs.values())))
         prob_vals=list(np.array(list(bltzmann_probs.values()))*(1./partition_sum))
 
@@ -192,7 +191,7 @@ class Exact_Sampling(IsingEnergyFunction):
                 return bpd
 
 
-    def run_exact_sampling(self, beta:float ) -> None :
+    def run_exact_sampling(self, beta:float, verbose:bool= False ) -> None :
         """ Running this function executes the 'get_boltzmann_distribution' function, thus exhaustively enumerating all possible
             configurations of the system and saving the ditribution as an attribute 'boltzmann_pd'. 
 
@@ -208,9 +207,9 @@ class Exact_Sampling(IsingEnergyFunction):
         """
         self.exact_sampling_status = True
         self.beta = beta
-        print("Running Exact Sampling | beta : ", beta)
-        self.get_boltzmann_distribution(beta= beta, save_distribution= True, return_dist= False)
-        print("saving distribution to model ...")
+        if verbose : print("Running Exact Sampling | beta : ", beta)
+        self.get_boltzmann_distribution(beta= beta, save_distribution= True, return_dist= False, verbose= verbose)
+        if verbose : print("saving distribution to model ...")
 
 
     def get_observable_expectation(self, observable) -> float:

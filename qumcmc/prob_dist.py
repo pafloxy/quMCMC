@@ -105,9 +105,7 @@ class DiscreteProbabilityDistribution(dict):
 
                 for config in self.keys()
             ]
-        )
-
-            
+        )         
         
 ### SOME FUNCTIONS.
 #1. KL divergence

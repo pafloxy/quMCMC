@@ -164,6 +164,7 @@ def quantum_enhanced_mcmc(
     # alpha,
     initial_state: Optional[str] = None,
     temperature=1,
+    verbose:bool= False
 ):
     """
     version 0.2
@@ -190,12 +191,12 @@ def quantum_enhanced_mcmc(
     
     current_state: MCMCState = initial_state
     energy_s = model.get_energy(current_state.bitstring)
-    print("starting with: ", current_state.bitstring, "with energy:", energy_s)
+    if verbose: print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
     mcmc_chain = MCMCChain([current_state])
 
-    print(mcmc_chain)
-    for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..' ):
+    # print(mcmc_chain)
+    for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
         # get sprime
         qc_s = initialise_qc(n_spins= model.num_spins, bitstring=current_state.bitstring)
         s_prime = run_qc_quantum_step(
