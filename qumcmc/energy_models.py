@@ -106,7 +106,17 @@ class IsingEnergyFunction:
         
         """
         return np.exp(-1 * beta * self.get_energy(state))
+    
+    from typing import List
+    def _update_J(self, new_param:float, index: Union[tuple, List]):
 
+        assert len(index) == 2
+        self.J[index[0], index[1]] = new_param
+        self.J[index[1], index[0]] = new_param
+    
+    def _update_h(self, new_param: float, index: int):
+
+        self.h[index] = new_param
 
 
 ###########################################################################################

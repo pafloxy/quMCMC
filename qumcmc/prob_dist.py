@@ -38,7 +38,7 @@ class DiscreteProbabilityDistribution(dict):
         }
         return sorted_dict
    
-    def get_truncated_distribution(self, epsilon:float = 0.00001):
+    def get_truncated_distribution(self, epsilon:float = 0.00001, inplace:bool = False):
         
         return_dict = {}
         index_probable_elements = [ indx for indx, b in enumerate( np.array(list(self.values())) > epsilon ) if b ]
@@ -48,7 +48,10 @@ class DiscreteProbabilityDistribution(dict):
         for indx in index_probable_elements:
             return_dict[states[indx]] = probs[indx]
         
-        return return_dict
+        if not inplace:
+            return DiscreteProbabilityDistribution(return_dict)
+        else :
+            self.__init__(return_dict)
             
     def expectation(self, dict_observable_val_at_states: dict):
         """
@@ -72,6 +75,39 @@ class DiscreteProbabilityDistribution(dict):
             temp_list
         )  # earlier I had np.mean here , which is wrong (obviously! duh!)
         return avg
+
+    def get_entropy(self):
+        tmp = sorted(np.array(list(self.values())), reverse= True)
+        entropy = 0
+        for val in tmp :
+            if val > 0.00001 :
+                entropy += -1 * val * np.log2(val)
+            else: 
+                return entropy
+    
+    def get_observable_expectation(self, observable) -> float:
+        """ Return expectation value of a classical observables
+
+            ARGS :
+            ----
+            observable: Must be a function of the spin configuration which takes an 'np.array' / 'str' of binary elements as input argument and returns a 'float'
+            beta: inverse temperature
+
+        """
+        # all_configs = np.array(list(itertools.product([1, 0], repeat=self.num_spins)))
+        # all_configs = [f"{k:0{self.num_spins}b}" for k in range(0, 2 ** (self.num_spins))]
+        
+
+        return np.sum(
+            [
+                self[config]
+                * observable(config)
+
+                for config in self.keys()
+            ]
+        )
+
+            
         
 ### SOME FUNCTIONS.
 #1. KL divergence

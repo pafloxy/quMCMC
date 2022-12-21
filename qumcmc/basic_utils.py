@@ -65,14 +65,17 @@ class MCMCChain:
         if len(states) is None:
             self._states: List[MCMCState] = []
             self._current_state: MCMCState = None
+            self._states_accepted: List[MCMCState] = []
         else:
             self._states = states
             self._current_state : MCMCState = next((s for s in self._states[::-1] if s.accepted), None)
+            self._states_accepted : List[MCMCState] = [ state for state in states if state.accepted]
 
 
     def add_state(self, state: MCMCState):
         if state.accepted:
             self._current_state = state
+            self._states_accepted.append(state)
         self._states.append(state)
 
 
@@ -88,7 +91,8 @@ class MCMCChain:
 
     @property
     def accepted_states(self) -> List[str]:
-        return [s.bitstring for s in self._states if s.accepted]
+        # return [s.bitstring for s in self._states if s.accepted]
+        return [state.bitstring for state in self._states_accepted]
 
 
     def get_accepted_dict(self, normalize: bool=False, until_index: int = -1):# -> Counter[str, int]:
