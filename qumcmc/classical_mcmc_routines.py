@@ -49,6 +49,7 @@ def classical_mcmc(
     model: IsingEnergyFunction ,
     initial_state: Optional[str] = None,
     temperature: float = 1.,
+    verbose:bool= False
 ):
     """
     ARGS:
@@ -75,12 +76,12 @@ def classical_mcmc(
     
     current_state: MCMCState = initial_state
     energy_s = model.get_energy(current_state.bitstring)
-    print("starting with: ", current_state.bitstring, "with energy:", energy_s)
+    if verbose : print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
     mcmc_chain = MCMCChain([current_state])
 
 
-    for _ in tqdm(range(0, n_hops), desc= 'running MCMC steps ...'):
+    for _ in tqdm(range(0, n_hops), desc= 'running MCMC steps ...', disable= not verbose):
         # get sprime
         s_prime = get_random_state(num_spins)
         # accept/reject s_prime
