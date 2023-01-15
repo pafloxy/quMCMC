@@ -93,8 +93,30 @@ class MCMCChain:
     def accepted_states(self) -> List[str]:
         # return [s.bitstring for s in self._states if s.accepted]
         return [state.bitstring for state in self._states_accepted]
+    
+    ### added by neel 13-Jan-2023
+    @property
+    def list_markov_chain_in_state(self)-> List[str]:
+        markov_chain_in_state=[self.states[0].bitstring]
+        for i in range(1,len(self.states)):
+            mcmc_state=self.states[i].bitstring
+            whether_accepted=self.states[i].accepted
+            if whether_accepted==True:
+                markov_chain_in_state.append(mcmc_state)
+            else:
+                markov_chain_in_state.append(markov_chain_in_state[i-1])
+        return markov_chain_in_state
+    ### added by neel 13-Jan-2023
+    def emp_distn_markov_chain_dict(self,skip_first_few:int=0,normalize: bool=False):
+        if normalize:
+            length = len(self.list_markov_chain_in_state[skip_first_few:])
+            empirical_distn_dict = Counter({s: count/length for s, count in Counter(self.list_markov_chain_in_state[skip_first_few:]).items()})
+        else:
+            empirical_distn_dict = Counter(self.list_markov_chain_in_state[skip_first_few:])
+        return empirical_distn_dict
 
 
+    
     def get_accepted_dict(self, normalize: bool=False, until_index: int = -1):# -> Counter[str, int]:
         if until_index != -1:
             accepted_states = [s.bitstring for s in self._states[:until_index] if s.accepted]
