@@ -152,7 +152,7 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
 
     acceptance_prob = lambda si, sf: min(1, model.get_boltzmann_factor(sf.bitstring) / model.get_boltzmann_factor(si.bitstring) )
     hamming_diff = lambda si, sf: hamming_dist(si.bitstring, sf.bitstring)
-    energy_diff = lambda si, sf: model.get_energy(sf.bitstring) - model.get_energy(si.bitstring)
+    energy_diff = lambda si, sf: np.abs(model.get_energy(sf.bitstring) - model.get_energy(si.bitstring))
 
     acceptance_statistic = [];hamming_statistic = [];energy_statistic = []
     
