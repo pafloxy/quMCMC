@@ -143,7 +143,7 @@ class RestrictedSampling:
             else :
                 state_obtained= q_state.sampling(sampling_count= 1)[0]
 
-            # state_obtained= [f"{state:0{model.num_spins}b}" for state in state_obtained]
+            # state_obtained= [f"{state:0{model.num_spins}b}" for state in astate_obtained]
             return f"{state_obtained:0{self.model.num_spins}b}"
 
         def run_quantum_enhanced_mcmc(self, iterations:int , verbose:bool = False):
