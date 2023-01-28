@@ -364,6 +364,10 @@ def fn_states_not_accepted(
     )
     return dict_numtimes_states_not_accepted, dict_numtimes_sprime_is_state
 
+def int_to_str(state_obtained, nspin):
+    return f"{state_obtained:0{nspin}b}"
+
+
 ###########################################################################################
 ## VISUALISATIONS AND PLOTTING ##
 ###########################################################################################
