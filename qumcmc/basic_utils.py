@@ -367,6 +367,8 @@ def fn_states_not_accepted(
 def int_to_str(state_obtained, nspin):
     return f"{state_obtained:0{nspin}b}"
 
+int_to_binary = lambda state_obtained, n_spins : f"{state_obtained:0{n_spins}b}"
+binary_to_bipolar = lambda string : 2.0 * float(string) - 1.0
 
 ###########################################################################################
 ## VISUALISATIONS AND PLOTTING ##
