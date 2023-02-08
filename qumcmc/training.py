@@ -82,6 +82,7 @@ class cd_training():
         self.model_beta = beta
         self.data_distribution = data_dist
         self.training_history = {}
+        self.kl_div = []
         self.list_pair_of_indices=[[i,j] for i in range(1,self.model.num_spins) for j in range(i,self.model.num_spins) if j!=i]
         
 
@@ -162,7 +163,7 @@ class cd_training():
     mcmc_steps:int = 500, show_kldiv:bool = True ):
 
         ## random update strategy ##
-        kl_div = []
+        # kl_div = []
         iterator = tqdm(range(epochs), desc= 'training epochs')
         iterator.set_postfix({'method': method})
         for epoch in iterator:
@@ -172,9 +173,14 @@ class cd_training():
             mcmc_steps= mcmc_steps )
 
             if show_kldiv:
-
                 
-                kl_div.append(kl_divergence(  self.data_distribution,self.mcmc_chain.get_accepted_dict(normalize= True)  ))
-                iterator.set_postfix( { 'method ': method, 'kl div ' : kl_div[-1] })
+                # self.kl_div.append(kl_divergence(  self.data_distribution, self.mcmc_chain.get_accepted_dict(normalize= True)  ))
+                
+                exact_sampled_model = Exact_Sampling(self.model, self.model_beta)
+                self.kl_div.append(kl_divergence(  self.data_distribution, exact_sampled_model.boltzmann_pd  ))
+                
+                iterator.set_postfix( { 'method ': method, 'kl div ' : self.kl_div[-1] })
         
-        if show_kldiv : self.training_history['kl_div']= kl_div
+        ## update training data ##
+        # self.kl_div += kl_div
+        self.training_history['kl_div']= self.kl_div
