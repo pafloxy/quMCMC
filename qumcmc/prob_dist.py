@@ -11,6 +11,7 @@ class DiscreteProbabilityDistribution(dict):
     def __init__(self, distribution:dict) -> None :
 
         super().__init__(distribution) 
+        self._normalise()
     
     def _normalise(self, print_normalisation:bool= False):
         """ Normalise the given disribution 
@@ -106,6 +107,16 @@ class DiscreteProbabilityDistribution(dict):
                 for config in self.keys()
             ]
         )         
+
+    def get_sample(self, num_samples, seed:int = np.random.randint(1,10000)) -> list:
+        """ Generate random samples from the distribution 
+        
+            ARGS
+            ----
+            num_smaples: no. of samples
+        """
+        # np.random.seed(seed)
+        return list(np.random.choice(list(self.keys()),p= list(self.values()), size= num_samples))
         
 ### SOME FUNCTIONS.
 #1. KL divergence

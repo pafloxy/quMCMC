@@ -95,12 +95,12 @@ class trajectory_processing:
 ## Functions to process trajectory data from MCMChain instances ##
 ##############################################################################################
 
-def calculate_running_kl_divergence(actual_boltz_distn: DiscreteProbabilityDistribution, mcmc_chain: MCMCChain, skip_steps: int = 1) -> list:
+def calculate_running_kl_divergence(actual_boltz_distn: DiscreteProbabilityDistribution, mcmc_chain: MCMCChain, skip_steps: int = 1, verbose= False) -> list:
     num_nhops = len(mcmc_chain.states)
     
     list_kl_after_each_step=[]
 
-    for step_num in tqdm(range(1, num_nhops, skip_steps)): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
+    for step_num in tqdm(range(1, num_nhops, skip_steps), disable= not verbose): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
 
         temp_distn_model = mcmc_chain.get_accepted_dict(normalize=True, until_index=step_num)
 
@@ -146,7 +146,7 @@ def calculate_runnning_magnetisation(mcmc_chain: MCMCChain, skip_steps: int = 1)
     return list_mag_after_each_step
 
 from typing import Union        
-def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFunction, Exact_Sampling], verbose:bool= False):
+def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFunction, Exact_Sampling],to_observe:set = {'acceptance_prob','kldiv', 'hamming', 'energy', 'magnetisation'} ,verbose:bool= False):
 
     trajectory = mcmc_chain.states
 
@@ -163,9 +163,9 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
         
         if verbose : print('trans: '+ str(trajectory[current_state_index].bitstring) + ' -> '+ str(trajectory[proposed_state_index].bitstring)+" status: "+str(trajectory[proposed_state_index].accepted)  )
 
-        acceptance_statistic.append( acceptance_prob(trajectory[current_state_index], trajectory[proposed_state_index] ) )
-        energy_statistic.append( energy_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
-        hamming_statistic.append( hamming_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        if 'acceptance_prob' in to_observe: acceptance_statistic.append( acceptance_prob(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        if 'energy' in to_observe: energy_statistic.append( energy_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        if 'hamming' in to_observe: hamming_statistic.append( hamming_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
 
         
         if trajectory[proposed_state_index].accepted :
@@ -173,6 +173,12 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
         
         proposed_state_index += 1
 
-    trajectory_statistics = {'energy':  np.array(energy_statistic), 'hamming':np.array(hamming_statistic), 'acceptance' :np.array(acceptance_statistic)}
-    
+    trajectory_statistics = {}
+    if 'acceptance_prob' in to_observe: trajectory_statistics['acceptance_prob'] = np.array(acceptance_statistic)
+    if 'energy' in to_observe: trajectory_statistics['energy'] = np.array(energy_statistic)
+    if 'hamming' in to_observe: trajectory_statistics['hamming'] = np.array(hamming_statistic)
+    if 'kldiv' in to_observe:
+        rkl = calculate_running_kl_divergence(model.boltzmann_pd, mcmc_chain, skip_steps= 1)
+        trajectory_statistics['kldiv'] = np.array(rkl)
+
     return trajectory_statistics

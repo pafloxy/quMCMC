@@ -322,3 +322,28 @@ class Exact_Sampling(IsingEnergyFunction):
             m[key] = 0.5 * ( bltz_dist[key] + q[key] ) 
         
         return 0.5 * self.get_kldiv(bltz_dist, m) + 0.5 * self.get_kldiv(q, m)
+
+
+def random_ising_model(n_spins:int, seed:int, print_model:bool= False, ):
+
+    np.random.seed(seed)
+    
+    ## construct problem Hamiltonian ##
+    shape_of_J=(n_spins,n_spins)
+
+    ## defining J matrix (mutual 1-1 interaction)
+    # J =  np.round(np.random.choice([+1, 0, -1], size=(n_spins, n_spins)), decimals=2) 
+    J =  np.random.uniform(low= -1, high= 1, size= shape_of_J )
+
+    J = 0.5 * (J + J.transpose() )
+    J = np.round( J - np.diag(np.diag(J)) , decimals= 3)
+
+    # defining h
+    h = np.round(0.4 * np.random.randn(n_spins), decimals=2)
+    #h = np.round(np.random.uniform(low= -1, high = 1, size= (n_spins)), decimals=2)
+
+    param_model = IsingEnergyFunction(J, h, name= 'param_model')
+    
+    if print_model : param_model.model_summary()
+
+    return param_model

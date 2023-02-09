@@ -112,10 +112,13 @@ class cd_training():
     mcmc_steps:int =1000 ):# we will try to increase mcmc steps. 
 
         random.seed(random.random()) ## add seed to random ##TODO
+        initialise_chain = self.data_distribution.get_sample(1, seed= np.random.randint(0,100))[0] ##randomly select a state from the data distribution
+
         if method == 'quantum-enhanced' :
             self.mcmc_chain = quantum_enhanced_mcmc(
             n_hops=mcmc_steps,
             model=self.model,
+            initial_state= initialise_chain,
             temperature=1/self.model_beta,
             verbose= False
             )
@@ -123,6 +126,7 @@ class cd_training():
             self.mcmc_chain = classical_mcmc(
             n_hops=mcmc_steps,
             model=self.model,
+            initial_state= initialise_chain,
             temperature=1/self.model_beta,
             verbose= False
             )
