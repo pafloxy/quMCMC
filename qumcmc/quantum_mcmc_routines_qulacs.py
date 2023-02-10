@@ -202,14 +202,17 @@ def quantum_enhanced_mcmc(
         s_prime = run_qc_quantum_step(
             qc_initialised_to_s=qc_s, model=model, alpha=model.alpha, n_spins= model.num_spins
         )
-        # accept/reject s_prime
-        energy_sprime = model.get_energy(s_prime)
-        accepted = test_accept(
-            energy_s, energy_sprime, temperature=temperature
-        )
-        mcmc_chain.add_state(MCMCState(s_prime, accepted))
-        if accepted:
-            current_state = mcmc_chain.current_state
-            energy_s = model.get_energy(current_state.bitstring)
+        
+        if len(s_prime) == model.num_spins :
+            # accept/reject s_prime
+            energy_sprime = model.get_energy(s_prime)
+            accepted = test_accept(
+                energy_s, energy_sprime, temperature=temperature
+            )
+            mcmc_chain.add_state(MCMCState(s_prime, accepted))
+            if accepted:
+                current_state = mcmc_chain.current_state
+                energy_s = model.get_energy(current_state.bitstring)
+        else: pass
 
     return mcmc_chain 
