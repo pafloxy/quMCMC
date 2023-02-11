@@ -42,20 +42,20 @@ def run_sampling_task(nspin, seed, beta, steps):
     return trajectory_data
 
 
-#####################################
-###     nspin: 10 ###
-#####################################
-DATA_10qubit = {}; nspin = 10
-seeds10q = [23564,178064,32164,143264,13164]
-betas10q = [1.0134,1.0134,1.0134,1.5634,1.12134]
-DATA_10qubit = {}; iter = 0
-for seed, beta in tqdm(zip(seeds10q, betas10q)):
-    iter += 1
-    tdata = run_sampling_task(nspin, seed, beta, 10000)
-    DATA_10qubit[iter] = tdata
+# #####################################
+# ###     nspin: 10 ###
+# #####################################
+# DATA_10qubit = {}; nspin = 10
+# seeds10q = [23564,178064,32164,143264,13164]
+# betas10q = [1.0134,1.0134,1.0134,1.5634,1.12134]
+# DATA_10qubit = {}; iter = 0
+# for seed, beta in tqdm(zip(seeds10q, betas10q)):
+#     iter += 1
+#     tdata = run_sampling_task(nspin, seed, beta, 10000)
+#     DATA_10qubit[iter] = tdata
 
-DATA_10qubit = pd.DataFrame(DATA_10qubit)
-DATA_10qubit.to_csv("SamplingData/DATA_10qubit.csv")
+# DATA_10qubit = pd.DataFrame(DATA_10qubit)
+# DATA_10qubit.to_csv("SamplingData/DATA_10qubit.csv")
 
 #####################################
 ###     nspin: 15 ###
@@ -66,9 +66,12 @@ betas15q = [1.02834, 1.02834, 1.02834, 1.02834, 1.02834]
 DATA_15qubit = {}; iter = 0
 for seed, beta in tqdm(zip(seeds15q, betas15q)):
     iter += 1
-    tdata = run_sampling_task(nspin, seed, beta, 20000)
+    tdata = run_sampling_task(nspin, seed, beta, 10000)
     DATA_15qubit[iter] = tdata
-
+    
+    to_save = pd.DataFrame(tdata)
+    to_save.to_csv("SamplingData/DATA_15qubit_"+str(iter)+".csv")
+    
 DATA_15qubit = pd.DataFrame(DATA_15qubit)
 DATA_15qubit.to_csv("SamplingData/DATA_15qubit.csv")
 
@@ -81,8 +84,10 @@ betas20q = [1.02834, 1.02834, 1.02834, 1.02834, 1.02834]
 DATA_20qubit = {}; iter = 0
 for seed, beta in tqdm(zip(seeds20q, betas20q)):
     iter += 1
-    tdata = run_sampling_task(nspin, seed, beta, 20000)
+    tdata = run_sampling_task(nspin, seed, beta, 10000)
     DATA_20qubit[iter] = tdata
+    to_save = pd.DataFrame(tdata)
+    to_save.to_csv("SamplingData/DATA_20qubit_"+str(iter)+".csv")
 
 DATA_20qubit = pd.DataFrame(DATA_20qubit)
 DATA_20qubit.to_csv("SamplingData/DATA_20qubit.csv")
