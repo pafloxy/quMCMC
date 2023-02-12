@@ -42,6 +42,10 @@ def run_sampling_task(nspin, seed, beta, steps):
     return trajectory_data
 
 
+######## Initialisations ###########
+save_after_run = True
+####################################
+
 # #####################################
 # ###     nspin: 10 ###
 # #####################################
@@ -63,31 +67,34 @@ def run_sampling_task(nspin, seed, beta, steps):
 DATA_15qubit = {}; nspin = 15
 seeds15q = [23564, 40217, 4036997, 98997, 14797]
 betas15q = [1.02834, 1.02834, 1.02834, 1.02834, 1.02834]
-DATA_15qubit = {}; iter = 0
-for seed, beta in tqdm(zip(seeds15q, betas15q)):
+DATA_15qubit = {}; iter = 1
+for seed, beta in tqdm(zip(seeds15q[iter:], betas15q[iter:])):
     iter += 1
     tdata = run_sampling_task(nspin, seed, beta, 10000)
     DATA_15qubit[iter] = tdata
     
-    to_save = pd.DataFrame(tdata)
-    to_save.to_csv("SamplingData/DATA_15qubit_"+str(iter)+".csv")
+    if save_after_run :
+        to_save = pd.DataFrame(tdata)
+        to_save.to_json("SamplingData/DATA_15qubit_"+str(iter)+".json")
     
 DATA_15qubit = pd.DataFrame(DATA_15qubit)
-DATA_15qubit.to_csv("SamplingData/DATA_15qubit.csv")
+DATA_15qubit.to_json("SamplingData/DATA_15qubit.json")
 
-#####################################
-###     nspin: 20 ###
-#####################################
-DATA_20qubit = {}; nspin = 20
-seeds20q = [54797, 7497, 4917, 49178, 9178]
-betas20q = [1.02834, 1.02834, 1.02834, 1.02834, 1.02834]
-DATA_20qubit = {}; iter = 0
-for seed, beta in tqdm(zip(seeds20q, betas20q)):
-    iter += 1
-    tdata = run_sampling_task(nspin, seed, beta, 10000)
-    DATA_20qubit[iter] = tdata
-    to_save = pd.DataFrame(tdata)
-    to_save.to_csv("SamplingData/DATA_20qubit_"+str(iter)+".csv")
+# ####################################
+# ##     nspin: 20 ###
+# ####################################
+# DATA_20qubit = {}; nspin = 20
+# seeds20q = [54797, 7497, 4917, 49178, 9178]
+# betas20q = [1.02834, 1.02834, 1.02834, 1.02834, 1.02834]
+# DATA_20qubit = {}; iter = 0
+# for seed, beta in tqdm(zip(seeds20q, betas20q)):
+#     iter += 1
+#     tdata = run_sampling_task(nspin, seed, beta, 10000)
+#     DATA_20qubit[iter] = tdata
+        
+#     if save_after_run :
+#         to_save = pd.DataFrame(tdata)
+#         to_save.to_csv("SamplingData/DATA_20qubit_"+str(iter)+".csv")
 
-DATA_20qubit = pd.DataFrame(DATA_20qubit)
-DATA_20qubit.to_csv("SamplingData/DATA_20qubit.csv")
+# DATA_20qubit = pd.DataFrame(DATA_20qubit)
+# DATA_20qubit.to_csv("SamplingData/DATA_20qubit.csv")
