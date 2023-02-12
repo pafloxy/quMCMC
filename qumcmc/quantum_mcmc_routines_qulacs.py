@@ -23,6 +23,8 @@ from qulacsvis import circuit_drawer
 from scipy.linalg import expm
 from qulacs.gate import DenseMatrix
 from qulacs.gate import X, Y, Z  
+
+import jax
 ################################################################################################
 ##  QUANTUM CIRCUIT CONSTRUCTION ##
 ################################################################################################
@@ -56,14 +58,29 @@ def fn_qc_h1(num_spins: int, gamma, alpha, h:list, delta_time=0.8) -> QuantumCir
     delta_time: total evolution time time/num_trotter_steps
     """
     a=gamma
-    b_list=list( ((gamma-1)*(alpha))* np.array(h))
+    b_list = ((gamma-1)*alpha)* np.array(h)
     qc_h1 = QuantumCircuit(num_spins)
+    # for j in range(0, num_spins):
+    #     unitary_gate=DenseMatrix(index=num_spins-1-j,
+    #                     matrix=np.round(
+    #                         # expm(-1j*delta_time*(a*X(2).get_matrix()+b_list[j]*Z(2).get_matrix())),
+    #                         jaxfunc(a, b_list[j], delta_time),
+    #                         decimals=6)
+    #                     )
+    matrices = np.array(jax_expm_vec(a, b_list, delta_time))
     for j in range(0, num_spins):
         unitary_gate=DenseMatrix(index=num_spins-1-j,
-                        matrix=np.round(expm(-1j*delta_time*(a*X(2).get_matrix()+b_list[j]*Z(2).get_matrix())),decimals=6)
+                        matrix=matrices[j]
                         )
         qc_h1.add_gate(unitary_gate)
     return qc_h1
+
+
+@jax.jit
+def jax_expm(a, b, delta_time):
+    return jax.scipy.linalg.expm(-1j*delta_time*(a*X(2).get_matrix()+b*Z(2).get_matrix()))
+
+jax_expm_vec = jax.jit(jax.vmap(jax_expm, (None, 0, None)))
 
 
 def fn_qc_h2(J:np.array, alpha:float, gamma:float, delta_time) -> QuantumCircuit :
