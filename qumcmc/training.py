@@ -188,3 +188,36 @@ class cd_training():
         ## update training data ##
         # self.kl_div += kl_div
         self.training_history['kl_div']= self.kl_div
+
+    
+    ########### scheduled-training ####################
+    ###################################################
+    
+    # def train(self, lr:float= 0.01, method = 'quantum-enhanced', 
+    # epochs:int = 10, schedule:str= 'linear', num_random_Jij:int=5,
+    # show_kldiv:bool = True ):
+
+    #     ## random update strategy ##
+    #     kl_div = []; js_div= []
+    #     iterator = tqdm(range(epochs), desc= 'training epochs')
+    #     iterator.set_postfix({'method': method})
+
+    #     if schedule == 'linear': 
+    #         mcmc_steps = np.linspace(100, 5000, epochs, dtype= int)
+    #         # params = self.model.num_spins * (self.model.num_spins + 1) / 2
+    #         iterations = np.linspace(int(self.model.num_spins/4), self.model.num_spins, epochs, dtype= int)
+    #         lr_c = np.linspace(lr, 10 * lr, epochs, dtype= float )
+
+    #     for epoch in iterator:
+
+    #         self._train_on_mcmc_chain(lr= lr_c[epoch] , 
+    #         method = method, iterations= iterations[epoch], num_random_Jij=num_random_Jij,
+    #         mcmc_steps= mcmc_steps[epoch] )
+
+    #         if show_kldiv:
+
+                
+    #             kl_div.append(kl_divergence(  self.data_distribution,self.mcmc_chain.get_accepted_dict(normalize= True)  ))
+    #             iterator.set_postfix( { 'method ': method, 'js div ' : js_div[-1], 'mcmc-steps ': mcmc_steps[epoch] })
+        
+    #     self.training_history['kl_div']= kl_div
