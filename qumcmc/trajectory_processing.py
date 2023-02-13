@@ -96,20 +96,39 @@ class trajectory_processing:
 ##############################################################################################
 
 def calculate_running_kl_divergence(actual_boltz_distn: DiscreteProbabilityDistribution, mcmc_chain: MCMCChain, skip_steps: int = 1, verbose= False) -> list:
-    num_nhops = len(mcmc_chain.states)
+    if skip_steps > 1:
+        print("skip_steps currently not available and defaults to 1")
+    
+        # TODO
+        num_nhops = len(mcmc_chain.states)
     
     list_kl_after_each_step=[]
 
-    for step_num in tqdm(range(1, num_nhops, skip_steps), disable= not verbose): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
+    ## slow
+    # for step_num in tqdm(range(1, num_nhops, skip_steps), disable= not verbose): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
 
-        temp_distn_model = mcmc_chain.get_accepted_dict(normalize=True, until_index=step_num)
+    #     temp_distn_model = mcmc_chain.get_accepted_dict(normalize=True, until_index=step_num)
+    #     # temp_distn_model = mcmc_chain.get_accepted_dict(normalize=True)
 
-        kl_temp=kl_divergence(actual_boltz_distn,temp_distn_model)
+    #     kl_temp=kl_divergence(actual_boltz_distn,temp_distn_model)
+
+    #     list_kl_after_each_step.append(kl_temp)
+
+    ## faster
+    tar_probs = np.array([v for k, v in sorted(actual_boltz_distn.items())])
+    nspin = len(list(actual_boltz_distn.keys())[0])
+    mod_probs = np.zeros(2**nspin)
+
+    for ii, bitstr in tqdm(enumerate(mcmc_chain.markov_chain, start=1), disable= not verbose): 
+        
+        mod_probs[int(bitstr, 2)] += 1
+
+        kl_temp = vectoried_KL(tar_probs, mod_probs/ii)
 
         list_kl_after_each_step.append(kl_temp)
 
-
     return list_kl_after_each_step
+
 
 def calculate_running_js_divergence(actual_boltz_distn: DiscreteProbabilityDistribution, mcmc_chain: MCMCChain, skip_steps: int = 1) -> list:
     num_nhops = len(mcmc_chain.states)

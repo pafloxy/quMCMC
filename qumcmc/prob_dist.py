@@ -4,6 +4,7 @@
 
 from .basic_utils import *
 from typing import Dict
+EPS = 1e-6
 
 class DiscreteProbabilityDistribution(dict):
     """ A class for handling discrete probability distributions """
@@ -137,36 +138,21 @@ def kl_divergence(dict_p: dict, dict_q: dict, prelim_check: bool= False):
     dict_p and dict_q have same keys and that both the distributions are
     normalised then user can set it to 'False'.
     '''
-    ## mine ##
-    # if prelim_check:
-    #     #check for whether or not dict_p and dict_q have same keys
-    #     keys_p,keys_q=list(dict_p.keys()),list(dict_q.keys())
-    #     keys_p.sort();keys_q.sort()
-    #     if keys_p==keys_q: pass  #"keys of both the dictionaries dont match!"
-    #     else :
-    #         for key in set(dict_p.keys()).union(set(dict_q.keys())) :
-    #             if key not in dict_p.keys(): dict_p[key] = 0.0
-    #             if key not in dict_q.keys(): dict_q[key] = 0.0
-
-    #     # print('p: ', dict_p)
-    #     # print('q: ', dict_q)
-    #     # check for whether values add to 1.
-    #     eps=1e-6
-    #     sum_vals_p=np.sum(list(dict_p.values()))
-    #     assert np.abs(sum_vals_p-1.0)<=eps, "sum of values of dict_p must be 1."
-    #     sum_vals_q=np.sum(list(dict_q.values()))
-    #     assert np.abs(sum_vals_q-1.0)<=eps, "sum of values of dict_q must be 1."
-
-    ## Manuel's ##
     KL = 0
     for bitstring, p_data in dict_p.items():
         if bitstring in dict_q.keys():
             KL += p_data * np.log(p_data) - p_data * np.log(
-                max(1e-6, dict_q[bitstring])
+                max(EPS, dict_q[bitstring])
             )
         else:
-            KL += p_data * np.log(p_data) - p_data * np.log(1e-6)
+            KL += p_data * np.log(p_data) - p_data * np.log(EPS)
     return KL
+
+
+def vectoried_KL(target_vector, model_vector):
+    model_vector = np.where(model_vector < EPS, EPS, model_vector)
+    return np.sum(target_vector * np.log(target_vector) - target_vector*np.log(model_vector))
+
 
 def js_divergence(dict_p:dict,dict_q:dict, prelim_check=True):
     ''' 
