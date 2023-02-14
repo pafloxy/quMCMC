@@ -88,21 +88,21 @@ DATA_10qubit.to_csv("SamplingData/DATA_10qubit.json")
 #####################################
 ###     nspin: 15 ###
 #####################################
-DATA_15qubit = {}; nspin = 15
-seeds15q = [23564, 40217, 4036997, 98997, 14797]
-betas15q = [1.02834, 1.02834, 1.02834, 1.02834, 1.02834]
-iter = 1
-for seed, beta in tqdm(zip(seeds15q[iter:], betas15q[iter:])):
-    iter += 1
-    tdata = run_sampling_task(nspin, seed, beta, 10000)
-    DATA_15qubit[iter] = tdata
+# DATA_15qubit = {}; nspin = 15
+# seeds15q = [23564, 40217, 4036997, 98997, 14797]
+# betas15q = [1.02834, 1.02834, 1.02834, 1.02834, 1.02834]
+# iter = 1
+# for seed, beta in tqdm(zip(seeds15q[iter:], betas15q[iter:])):
+#     iter += 1
+#     tdata = run_sampling_task(nspin, seed, beta, 10000)
+#     DATA_15qubit[iter] = tdata
     
-    if save_after_run :
-        to_save = pd.DataFrame(tdata)
-        to_save.to_json("SamplingData/DATA_15qubit_"+str(iter)+".json")
+#     if save_after_run :
+#         to_save = pd.DataFrame(tdata)
+#         to_save.to_json("SamplingData/DATA_15qubit_"+str(iter)+".json")
     
-DATA_15qubit = pd.DataFrame(DATA_15qubit)
-DATA_15qubit.to_json("SamplingData/DATA_15qubit.json")
+# DATA_15qubit = pd.DataFrame(DATA_15qubit)
+# DATA_15qubit.to_json("SamplingData/DATA_15qubit.json")
 
 # ####################################
 # ##     nspin: 20 ###
