@@ -12,7 +12,9 @@ class DiscreteProbabilityDistribution(dict):
     def __init__(self, distribution:dict) -> None :
 
         super().__init__(distribution) 
-        self._normalise()
+        
+        if sum(list(distribution.values())) != 1.0 : 
+            self._normalise()
     
     def _normalise(self, print_normalisation:bool= False):
         """ Normalise the given disribution 

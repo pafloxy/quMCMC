@@ -68,6 +68,10 @@ def cd_h(index:int, data_distribution:DiscreteProbabilityDistribution, mcmc_chai
 
     return r
 
+###########################################################################################
+## MAIN TRAINING CLASS ##
+###########################################################################################
+
 # @dataclass
 class cd_training():
     ''' 
@@ -107,12 +111,13 @@ class cd_training():
     
     def _train_on_mcmc_chain(self, lr:float= 0.01, 
     method = 'quantum-enhanced', 
-    iterations: int = 100, # rename this iterations to something else
+    iterations: int = 100, # rename this iterations to something else ('iterations' is only relevant while update_strategy == 'random', ignore otherwise !)
     num_random_Jij: int=10,
-    mcmc_steps:int =1000 ):# we will try to increase mcmc steps. 
+    mcmc_steps:int =1000,
+    update_strategy:str = 'all' ):# we will try to increase mcmc steps. 
 
         random.seed(random.random()) ## add seed to random ##TODO
-        initialise_chain = self.data_distribution.get_sample(1, seed= np.random.randint(0,100))[0] ##randomly select a state from the data distribution
+        initialise_chain = self.data_distribution.get_sample(1)[0] ##randomly select a state from the data distribution
 
         if method == 'quantum-enhanced' :
             self.mcmc_chain = quantum_enhanced_mcmc(
@@ -131,39 +136,56 @@ class cd_training():
             verbose= False
             )
         
-        ## random update strategy ##
-        ## just realised that even this is not a good thing! 
-        assert iterations<=self.model.num_spins, f"iterations should be <= num_spins (which is= {self.model.num_spins}) "
-        assert num_random_Jij<=len(self.list_pair_of_indices), f"num_random_Jij should be <=len(self.list_pair_of_indices) (which is= {len(self.list_pair_of_indices)})"
-        
-        list_random_indices=random.sample(range(0,self.model.num_spins), iterations)
-        #list_pair_of_indices=[[i,j] for i in range(1,self.model.num_spins) for j in range(i,self.model.num_spins) if j!=i]
-        #list_pair_of_different_indices=random.sample(self.list_pair_of_indices,k=num_random_Jij)
-
-        list_pair_of_different_indices=[[list_random_indices[j],
-                    random.choice(list(range(0,list_random_indices[j]))+list(range(list_random_indices[j]+1,self.model.num_spins)))] 
-                    for j in range(0,iterations)]
-        
-        # ## Update J
-        for k in range(len(list_pair_of_different_indices)):
-            indices_J=list_pair_of_different_indices[k]
-            updated_param_j=self.model.J[indices_J[0],indices_J[1]] - lr * self.cd_J(indices_J, self.mcmc_chain)
-            self.model._update_J(updated_param_j, indices_J)
-
-        for k in range(iterations):
-            #indices_J=list_pair_of_different_indices[k]
-            #updated_param_j = model.J[indices_J[0],indices_J[1]] - lr * self.cd_J(indices_J, self.mcmc_chain)
-
-            # update h
-            index_h=list_random_indices[k]
-            updated_param_h=self.model.h[index_h] - lr*self.cd_h(index_h,self.mcmc_chain)
-
-            #self.model._update_J(updated_param_j, indices_J)
-            self.model._update_h(updated_param_h, index_h)
+        if isinstance(update_strategy, str) and update_strategy == 'random' :     ## random update strategy ##
             
+            ## just realised that even this is not a good thing! 
+            assert iterations<=self.model.num_spins, f"iterations should be <= num_spins (which is= {self.model.num_spins}) "
+            assert num_random_Jij<=len(self.list_pair_of_indices), f"num_random_Jij should be <=len(self.list_pair_of_indices) (which is= {len(self.list_pair_of_indices)})"
+            
+            list_random_indices=random.sample(range(0,self.model.num_spins), iterations)
+            #list_pair_of_indices=[[i,j] for i in range(1,self.model.num_spins) for j in range(i,self.model.num_spins) if j!=i]
+            #list_pair_of_different_indices=random.sample(self.list_pair_of_indices,k=num_random_Jij)
+
+            list_pair_of_different_indices=[[list_random_indices[j],
+                        random.choice(list(range(0,list_random_indices[j]))+list(range(list_random_indices[j]+1,self.model.num_spins)))] 
+                        for j in range(0,iterations)]
+            
+            # ## Update J
+            for k in range(len(list_pair_of_different_indices)):
+                indices_J=list_pair_of_different_indices[k]
+                updated_param_j=self.model.J[indices_J[0],indices_J[1]] - lr * self.cd_J(indices_J, self.mcmc_chain)
+                self.model._update_J(updated_param_j, indices_J)
+
+            for k in range(iterations):
+                #indices_J=list_pair_of_different_indices[k]
+                #updated_param_j = model.J[indices_J[0],indices_J[1]] - lr * self.cd_J(indices_J, self.mcmc_chain)
+
+                # update h
+                index_h=list_random_indices[k]
+                updated_param_h=self.model.h[index_h] - lr*self.cd_h(index_h,self.mcmc_chain)
+
+                #self.model._update_J(updated_param_j, indices_J)
+                self.model._update_h(updated_param_h, index_h)
+        
+        if isinstance(update_strategy, str) and update_strategy == 'all' :     
+
+            for i in range(self.model.num_spins):
+
+                for j in range(i):
+
+                    updated_param_j = self.model.J[i,j] - lr * self.cd_J([i,j], self.mcmc_chain)
+                    self.model._update_J(updated_param_j, [i,j])
+                
+                updated_param_h = self.model.h[i] - lr * self.cd_h(i, self.mcmc_chain)
+                self.model._update_h(updated_param_h, i)
+
+
+
+
+
 
     def train(self, lr:float= 0.01, method = 'quantum-enhanced', 
-    epochs:int = 10, iterations: int = 100, num_random_Jij:int=5,
+    epochs:int = 10, update_strategy = 'all', iterations: int = 100, num_random_Jij:int=5,
     mcmc_steps:int = 500, show_kldiv:bool = True ):
 
         ## random update strategy ##
@@ -174,7 +196,7 @@ class cd_training():
 
             self._train_on_mcmc_chain(lr= lr , 
             method = method, iterations= iterations, num_random_Jij=num_random_Jij,
-            mcmc_steps= mcmc_steps )
+            mcmc_steps= mcmc_steps, update_strategy= update_strategy )
 
             if show_kldiv:
                 
