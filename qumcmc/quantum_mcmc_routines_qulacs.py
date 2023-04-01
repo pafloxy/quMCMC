@@ -23,6 +23,8 @@ from qulacsvis import circuit_drawer
 from scipy.linalg import expm
 from qulacs.gate import DenseMatrix
 from qulacs.gate import X, Y, Z  
+
+import jax
 ################################################################################################
 ##  QUANTUM CIRCUIT CONSTRUCTION ##
 ################################################################################################
@@ -56,14 +58,29 @@ def fn_qc_h1(num_spins: int, gamma, alpha, h:list, delta_time=0.8) -> QuantumCir
     delta_time: total evolution time time/num_trotter_steps
     """
     a=gamma
-    b_list=list( ((gamma-1)*(alpha))* np.array(h))
+    b_list = ((gamma-1)*alpha)* np.array(h)
     qc_h1 = QuantumCircuit(num_spins)
+    # for j in range(0, num_spins):
+    #     unitary_gate=DenseMatrix(index=num_spins-1-j,
+    #                     matrix=np.round(
+    #                         # expm(-1j*delta_time*(a*X(2).get_matrix()+b_list[j]*Z(2).get_matrix())),
+    #                         jaxfunc(a, b_list[j], delta_time),
+    #                         decimals=6)
+    #                     )
+    matrices = np.array(jax_expm_vec(a, b_list, delta_time))
     for j in range(0, num_spins):
         unitary_gate=DenseMatrix(index=num_spins-1-j,
-                        matrix=np.round(expm(-1j*delta_time*(a*X(2).get_matrix()+b_list[j]*Z(2).get_matrix())),decimals=6)
+                        matrix=matrices[j]
                         )
         qc_h1.add_gate(unitary_gate)
     return qc_h1
+
+
+@jax.jit
+def jax_expm(a, b, delta_time):
+    return jax.scipy.linalg.expm(-1j*delta_time*(a*X(2).get_matrix()+b*Z(2).get_matrix()))
+
+jax_expm_vec = jax.jit(jax.vmap(jax_expm, (None, 0, None)))
 
 
 def fn_qc_h2(J:np.array, alpha:float, gamma:float, delta_time) -> QuantumCircuit :
@@ -164,6 +181,7 @@ def quantum_enhanced_mcmc(
     # alpha,
     initial_state: Optional[str] = None,
     temperature=1,
+    verbose:bool= False
 ):
     """
     version 0.2
@@ -190,25 +208,28 @@ def quantum_enhanced_mcmc(
     
     current_state: MCMCState = initial_state
     energy_s = model.get_energy(current_state.bitstring)
-    print("starting with: ", current_state.bitstring, "with energy:", energy_s)
+    if verbose: print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
     mcmc_chain = MCMCChain([current_state])
 
-    print(mcmc_chain)
-    for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..' ):
+    # print(mcmc_chain)
+    for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
         # get sprime
         qc_s = initialise_qc(n_spins= model.num_spins, bitstring=current_state.bitstring)
         s_prime = run_qc_quantum_step(
             qc_initialised_to_s=qc_s, model=model, alpha=model.alpha, n_spins= model.num_spins
         )
-        # accept/reject s_prime
-        energy_sprime = model.get_energy(s_prime)
-        accepted = test_accept(
-            energy_s, energy_sprime, temperature=temperature
-        )
-        mcmc_chain.add_state(MCMCState(s_prime, accepted))
-        if accepted:
-            current_state = mcmc_chain.current_state
-            energy_s = model.get_energy(current_state.bitstring)
+        
+        if len(s_prime) == model.num_spins :
+            # accept/reject s_prime
+            energy_sprime = model.get_energy(s_prime)
+            accepted = test_accept(
+                energy_s, energy_sprime, temperature=temperature
+            )
+            mcmc_chain.add_state(MCMCState(s_prime, accepted))
+            if accepted:
+                current_state = mcmc_chain.current_state
+                energy_s = model.get_energy(current_state.bitstring)
+        else: pass
 
     return mcmc_chain 

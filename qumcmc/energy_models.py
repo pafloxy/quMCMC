@@ -106,8 +106,17 @@ class IsingEnergyFunction:
         
         """
         return np.exp(-1 * beta * self.get_energy(state))
+    
+    from typing import List
+    def _update_J(self, new_param:float, index: Union[tuple, List]):
 
+        assert len(index) == 2
+        self.J[index[0], index[1]] = new_param
+        self.J[index[1], index[0]] = new_param
+    
+    def _update_h(self, new_param: float, index: int):
 
+        self.h[index] = new_param
 
 ###########################################################################################
 ## EXACT SAMPLING on MODEL ##
@@ -115,13 +124,13 @@ class IsingEnergyFunction:
 
 class Exact_Sampling(IsingEnergyFunction):
 
-    def __init__(self, model: IsingEnergyFunction,  beta:float= 1.0) -> None :
+    def __init__(self, model: IsingEnergyFunction,  beta:float= 1.0, verbose= False) -> None :
 
         super().__init__(model.get_J, model.get_h, model.name)
     
         self.beta = beta
         self.exact_sampling_status = False
-        self.run_exact_sampling(self.beta)
+        self.run_exact_sampling(self.beta, verbose= verbose)
 
     def sampling_summary(self, plot_dist:bool=True):
         
@@ -145,7 +154,7 @@ class Exact_Sampling(IsingEnergyFunction):
             raise RuntimeError("Please Run Exact Sampling at any specified temperature first")
 
     def get_boltzmann_distribution(
-        self, beta:float = 1.0, sorted:bool = False, save_distribution:bool = False , return_dist:bool= True, plot_dist:bool = False
+        self, beta:float = 1.0, sorted:bool = False, save_distribution:bool = False , return_dist:bool= True, plot_dist:bool = False, verbose:bool= False
     ) -> dict :
         """ Get normalised boltzmann distribution over states 
 
@@ -161,7 +170,7 @@ class Exact_Sampling(IsingEnergyFunction):
             'dict' corresponding to the distribution
         """
         all_configs = [f"{k:0{self.num_spins}b}" for k in range(0, 2 ** (self.num_spins))]
-        bltzmann_probs = dict( [ ( state, self.get_boltzmann_factor(state, beta= beta) ) for state in tqdm(all_configs, desc= 'running over all possible configurations') ] )
+        bltzmann_probs = dict( [ ( state, self.get_boltzmann_factor(state, beta= beta) ) for state in tqdm(all_configs, desc= 'running over all possible configurations', disable= not verbose ) ] )
         partition_sum=np.sum(np.array(list(bltzmann_probs.values())))
         prob_vals=list(np.array(list(bltzmann_probs.values()))*(1./partition_sum))
 
@@ -182,7 +191,7 @@ class Exact_Sampling(IsingEnergyFunction):
                 return bpd
 
 
-    def run_exact_sampling(self, beta:float ) -> None :
+    def run_exact_sampling(self, beta:float, verbose:bool= False ) -> None :
         """ Running this function executes the 'get_boltzmann_distribution' function, thus exhaustively enumerating all possible
             configurations of the system and saving the ditribution as an attribute 'boltzmann_pd'. 
 
@@ -198,9 +207,9 @@ class Exact_Sampling(IsingEnergyFunction):
         """
         self.exact_sampling_status = True
         self.beta = beta
-        print("Running Exact Sampling | beta : ", beta)
-        self.get_boltzmann_distribution(beta= beta, save_distribution= True, return_dist= False)
-        print("saving distribution to model ...")
+        if verbose : print("Running Exact Sampling | beta : ", beta)
+        self.get_boltzmann_distribution(beta= beta, save_distribution= True, return_dist= False, verbose= verbose)
+        if verbose : print("saving distribution to model ...")
 
 
     def get_observable_expectation(self, observable) -> float:
@@ -313,3 +322,28 @@ class Exact_Sampling(IsingEnergyFunction):
             m[key] = 0.5 * ( bltz_dist[key] + q[key] ) 
         
         return 0.5 * self.get_kldiv(bltz_dist, m) + 0.5 * self.get_kldiv(q, m)
+
+
+def random_ising_model(n_spins:int, seed:int, print_model:bool= False, ):
+
+    np.random.seed(seed)
+    
+    ## construct problem Hamiltonian ##
+    shape_of_J=(n_spins,n_spins)
+
+    ## defining J matrix (mutual 1-1 interaction)
+    # J =  np.round(np.random.choice([+1, 0, -1], size=(n_spins, n_spins)), decimals=2) 
+    J =  np.random.uniform(low= -1, high= 1, size= shape_of_J )
+
+    J = 0.5 * (J + J.transpose() )
+    J = np.round( J - np.diag(np.diag(J)) , decimals= 3)
+
+    # defining h
+    h = np.round(0.4 * np.random.randn(n_spins), decimals=2)
+    #h = np.round(np.random.uniform(low= -1, high = 1, size= (n_spins)), decimals=2)
+
+    param_model = IsingEnergyFunction(J, h, name= 'param_model')
+    
+    if print_model : param_model.model_summary()
+
+    return param_model

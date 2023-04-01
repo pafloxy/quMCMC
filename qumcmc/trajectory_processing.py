@@ -95,21 +95,40 @@ class trajectory_processing:
 ## Functions to process trajectory data from MCMChain instances ##
 ##############################################################################################
 
-def calculate_running_kl_divergence(actual_boltz_distn: DiscreteProbabilityDistribution, mcmc_chain: MCMCChain, skip_steps: int = 1) -> list:
-    num_nhops = len(mcmc_chain.states)
+def calculate_running_kl_divergence(actual_boltz_distn: DiscreteProbabilityDistribution, mcmc_chain: MCMCChain, skip_steps: int = 1, verbose= False) -> list:
+    if skip_steps > 1:
+        print("skip_steps currently not available and defaults to 1")
+    
+        # TODO
+        num_nhops = len(mcmc_chain.states)
     
     list_kl_after_each_step=[]
 
-    for step_num in tqdm(range(1, num_nhops, skip_steps)): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
+    ## slow
+    # for step_num in tqdm(range(1, num_nhops, skip_steps), disable= not verbose): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
 
-        temp_distn_model = mcmc_chain.get_accepted_dict(normalize=True, until_index=step_num)
+    #     temp_distn_model = mcmc_chain.get_accepted_dict(normalize=True, until_index=step_num)
+    #     # temp_distn_model = mcmc_chain.get_accepted_dict(normalize=True)
 
-        kl_temp=kl_divergence(actual_boltz_distn,temp_distn_model)
+    #     kl_temp=kl_divergence(actual_boltz_distn,temp_distn_model)
+
+    #     list_kl_after_each_step.append(kl_temp)
+
+    ## faster
+    tar_probs = np.array([v for k, v in sorted(actual_boltz_distn.items())])
+    nspin = len(list(actual_boltz_distn.keys())[0])
+    mod_probs = np.zeros(2**nspin)
+
+    for ii, bitstr in tqdm(enumerate(mcmc_chain.markov_chain, start=1), disable= not verbose): 
+        
+        mod_probs[int(bitstr, 2)] += 1
+
+        kl_temp = vectoried_KL(tar_probs, mod_probs/ii)
 
         list_kl_after_each_step.append(kl_temp)
 
-
     return list_kl_after_each_step
+
 
 def calculate_running_js_divergence(actual_boltz_distn: DiscreteProbabilityDistribution, mcmc_chain: MCMCChain, skip_steps: int = 1) -> list:
     num_nhops = len(mcmc_chain.states)
@@ -146,13 +165,13 @@ def calculate_runnning_magnetisation(mcmc_chain: MCMCChain, skip_steps: int = 1)
     return list_mag_after_each_step
 
 from typing import Union        
-def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFunction, Exact_Sampling], verbose:bool= False):
+def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFunction, Exact_Sampling],to_observe:set = {'acceptance_prob','kldiv', 'hamming', 'energy', 'magnetisation'} ,verbose:bool= False):
 
     trajectory = mcmc_chain.states
 
     acceptance_prob = lambda si, sf: min(1, model.get_boltzmann_factor(sf.bitstring) / model.get_boltzmann_factor(si.bitstring) )
     hamming_diff = lambda si, sf: hamming_dist(si.bitstring, sf.bitstring)
-    energy_diff = lambda si, sf: np.abs(model.get_energy(sf.bitstring) - model.get_energy(si.bitstring))
+    energy_diff = lambda si, sf: model.get_energy(sf.bitstring) - model.get_energy(si.bitstring)
 
     acceptance_statistic = [];hamming_statistic = [];energy_statistic = []
     
@@ -163,9 +182,9 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
         
         if verbose : print('trans: '+ str(trajectory[current_state_index].bitstring) + ' -> '+ str(trajectory[proposed_state_index].bitstring)+" status: "+str(trajectory[proposed_state_index].accepted)  )
 
-        acceptance_statistic.append( acceptance_prob(trajectory[current_state_index], trajectory[proposed_state_index] ) )
-        energy_statistic.append( energy_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
-        hamming_statistic.append( hamming_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        if 'acceptance_prob' in to_observe: acceptance_statistic.append( acceptance_prob(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        if 'energy' in to_observe: energy_statistic.append( energy_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        if 'hamming' in to_observe: hamming_statistic.append( hamming_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
 
         
         if trajectory[proposed_state_index].accepted :
@@ -173,6 +192,12 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
         
         proposed_state_index += 1
 
-    trajectory_statistics = {'energy':  np.array(energy_statistic), 'hamming':np.array(hamming_statistic), 'acceptance' :np.array(acceptance_statistic)}
-    
+    trajectory_statistics = {}
+    if 'acceptance_prob' in to_observe: trajectory_statistics['acceptance_prob'] = np.array(acceptance_statistic)
+    if 'energy' in to_observe: trajectory_statistics['energy'] = np.array(energy_statistic)
+    if 'hamming' in to_observe: trajectory_statistics['hamming'] = np.array(hamming_statistic)
+    if 'kldiv' in to_observe:
+        rkl = calculate_running_kl_divergence(model.boltzmann_pd, mcmc_chain, skip_steps= 1)
+        trajectory_statistics['kldiv'] = np.array(rkl)
+
     return trajectory_statistics

@@ -49,24 +49,26 @@ def classical_mcmc(
     model: IsingEnergyFunction ,
     initial_state: Optional[str] = None,
     temperature: float = 1.,
+    verbose:bool= False,
+    method:str= 'uniform'
 ):
     """
     ARGS:
     -----
-    Nhops: Number of time you want to run mcmc
-    num_spins: number of spins
-    num_elems: 2**(num_spins)
-    model:
-    return_last_n_states: (int) Number of states in the end of the M.Chain you want to consider for prob distn (default value is last 500)
-    return_both (default=False): If set to True, in addition to dict_count_return_lst_n_states, also returns 2 lists:
-                                "list_after_transition: list of states s' obtained after transition step s->s' " and
-                                "list_state_mchain_is_in: list of states markov chain was in".
+    n_hops: Number of time you want to run mcmc
+    model: 
+    initial_state:
+    temperature:
+    method : Choose between proposition strategy -> 'uniform' / 'local'
+    
     RETURNS:
     --------
     Last 'dict_count_return_last_n_states' elements of states so collected (default value=500). one can then deduce the distribution from it!
     
     """
     num_spins = model.num_spins
+
+    assert isinstance(method, str); assert method in {'uniform', 'local'},  ("Unkown method specified, choose betwen ('uniform', 'local') ")
 
     if initial_state is None : 
         initial_state = MCMCState(get_random_state(num_spins), accepted=True)
@@ -75,14 +77,22 @@ def classical_mcmc(
     
     current_state: MCMCState = initial_state
     energy_s = model.get_energy(current_state.bitstring)
-    print("starting with: ", current_state.bitstring, "with energy:", energy_s)
+    if verbose : print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
     mcmc_chain = MCMCChain([current_state])
 
 
-    for _ in tqdm(range(0, n_hops), desc= 'running MCMC steps ...'):
+    for _ in tqdm(range(0, n_hops), desc= 'running MCMC steps ...', disable= not verbose):
         # get sprime
-        s_prime = get_random_state(num_spins)
+        if method == 'uniform' :
+            s_prime = get_random_state(num_spins)
+        elif method == 'local' :
+            n_local_updates = 1
+            r_idx = np.random.randint(0, num_spins)
+            if current_state.bitstring[r_idx] == '1' : s_r_idx = '0'; 
+            else: s_r_idx = '1'
+            s_prime = current_state.bitstring[:r_idx] + s_r_idx + current_state.bitstring[r_idx+1:]
+
         # accept/reject s_prime
         energy_sprime = model.get_energy(s_prime)   # to make this scalable, I think you need to calculate energy ratios.
         accepted = test_accept(
