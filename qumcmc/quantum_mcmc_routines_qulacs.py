@@ -205,7 +205,7 @@ def run_qc_quantum_step(
     J = model.get_J
 
     # init_qc=initialise_qc(n_spins=n_spins, bitstring='1'*n_spins)
-    gamma = np.round(np.random.uniform(0.25, 0.6), decimals=2)
+    gamma = np.round(np.random.uniform(0, 0.01), decimals=6)
     time = np.random.choice(list(range(2, 12)))  # earlier I had [2,20]
     delta_time = 0.8 
     num_trotter_steps = int(np.floor((time / delta_time)))
