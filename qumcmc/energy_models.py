@@ -132,11 +132,11 @@ class Exact_Sampling(IsingEnergyFunction):
         self.exact_sampling_status = False
         self.run_exact_sampling(self.beta, verbose= verbose)
 
-    def sampling_summary(self, plot_dist:bool=True):
+    def sampling_summary(self, plot_dist:bool=True, show_threshold=0.01):
         
         if self.exact_sampling_status :
             tmp = np.array(list(self.boltzmann_pd.values()))
-            count_non_zero = len(tmp[tmp > 0.01])
+            count_non_zero = len(tmp[tmp > show_threshold])
             
             print("=============================================")
             print("     MODEL : "+str(self.name)+" |  beta : "+str(self.beta) )
