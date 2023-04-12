@@ -185,7 +185,7 @@ def combine_2_qc(init_qc: QuantumCircuit, trottered_qc: QuantumCircuit) -> Quant
 ################################################################################################
 
 def run_qc_quantum_step(
-    qc_initialised_to_s: QuantumCircuit, model: IsingEnergyFunction, alpha, n_spins: int,
+    qc_initialised_to_s: QuantumCircuit, model: IsingEnergyFunction, alpha, n_spins: int, gamma_range= (0.2, 0.6),
     single_qubit_mixer=True, pauli_index_list=[1,1]) -> str:
 
     """
@@ -205,7 +205,7 @@ def run_qc_quantum_step(
     J = model.get_J
 
     # init_qc=initialise_qc(n_spins=n_spins, bitstring='1'*n_spins)
-    gamma = np.round(np.random.uniform(0, 0.01), decimals=6)
+    gamma = np.round(np.random.uniform(low= min(gamma_range), high = max(gamma_range) ), decimals=6)
     time = np.random.choice(list(range(2, 12)))  # earlier I had [2,20]
     delta_time = 0.8 
     num_trotter_steps = int(np.floor((time / delta_time)))
@@ -234,7 +234,9 @@ def quantum_enhanced_mcmc(
     # alpha,
     initial_state: Optional[str] = None,
     temperature=1,
-    verbose:bool= False,single_qubit_mixer=True,pauli_index_list=[1,1]
+    gamma_range = (0.2, 0.6),
+    verbose:bool= False,single_qubit_mixer=True,pauli_index_list=[1,1],
+    name:str = "quMCMC"
 ):
     """
     version 0.2
@@ -263,14 +265,14 @@ def quantum_enhanced_mcmc(
     energy_s = model.get_energy(current_state.bitstring)
     if verbose: print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
-    mcmc_chain = MCMCChain([current_state])
+    mcmc_chain = MCMCChain([current_state], name= name)
 
     # print(mcmc_chain)
     for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
         # get sprime
         qc_s = initialise_qc(n_spins= model.num_spins, bitstring=current_state.bitstring)
         s_prime = run_qc_quantum_step(
-            qc_initialised_to_s=qc_s, model=model, alpha=model.alpha, n_spins= model.num_spins,
+            qc_initialised_to_s=qc_s, model=model, alpha=model.alpha, n_spins= model.num_spins, gamma_range= gamma_range,
             single_qubit_mixer=single_qubit_mixer, pauli_index_list=pauli_index_list
         )
         
