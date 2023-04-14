@@ -4,7 +4,7 @@
 
 from .basic_utils import *
 from typing import Dict
-EPS = 1e-6
+EPS = 1e-8
 
 class DiscreteProbabilityDistribution(dict):
     """ A class for handling discrete probability distributions """
@@ -152,6 +152,9 @@ def kl_divergence(dict_p: dict, dict_q: dict, prelim_check: bool= False):
 
 
 def vectoried_KL(target_vector, model_vector):
+    inds = target_vector > 1e-10
+    target_vector = target_vector[inds]
+    model_vector = model_vector[inds]
     model_vector = np.where(model_vector < EPS, EPS, model_vector)
     return np.sum(target_vector * np.log(target_vector) - target_vector*np.log(model_vector))
 

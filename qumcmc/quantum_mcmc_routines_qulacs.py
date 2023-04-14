@@ -186,7 +186,7 @@ def combine_2_qc(init_qc: QuantumCircuit, trottered_qc: QuantumCircuit) -> Quant
 
 def run_qc_quantum_step(
     qc_initialised_to_s: QuantumCircuit, model: IsingEnergyFunction, alpha, n_spins: int, gamma_range= (0.2, 0.6),
-    single_qubit_mixer=True, pauli_index_list=[1,1]) -> str:
+    single_qubit_mixer=True, pauli_index_list=(1,1)) -> str:
 
     """
     Takes in a qc initialized to some state "s". After performing unitary evolution U=exp(-iHt)
