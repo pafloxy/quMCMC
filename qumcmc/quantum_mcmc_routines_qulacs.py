@@ -152,7 +152,7 @@ def fn_qc_h2(J:np.array, alpha:float, gamma:float, delta_time, single_qubit_mixe
         all_poss_combn_asc_order=list(combinations(indices,r))
         for i in range(0,len(all_poss_combn_asc_order)):
             target_list=list(all_poss_combn_asc_order[i])
-            angle=1
+            angle= -1 * gamma * delta_time ## @pafloxy : make the angle 'gamma' dependent
             qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,
                                                         pauli_ids=pauli_x_index, 
                                                         angle=angle)
@@ -220,7 +220,7 @@ def run_qc_quantum_step(
     )
     qc_for_mcmc = combine_2_qc(qc_initialised_to_s, trotter_ckt)# i can get rid of this!
     # run the circuit
-    q_state=QuantumState(qubit_count=n_spins)
+    q_state= QuantumState(qubit_count=n_spins)
     q_state.set_zero_state()
     qc_for_mcmc.update_quantum_state(q_state)
     state_obtained=q_state.sampling(sampling_count=1)[0]

@@ -432,6 +432,48 @@ def plot_multiple_bargraphs(
     elif sort_desc == False and sort_asc == False:
         df[:plot_first_few].plot.bar(rot=90, figsize=figsize)
 
+
+def plot_hamming_distance_statistics(trajectory_stat_list: list, nspin: int, labels: list, figsize= (16,8) ):
+
+    
+
+    plt.figure(figsize= figsize)
+
+    bins = np.arange(0, nspin+1)
+    alpha = 0.3
+    for item in zip(trajectory_stat_list, labels):
+
+        alpha += (0.7) / len(trajectory_stat_list)
+        plt.bar(*np.unique(item[0]['hamming'], return_counts=True),label= item[1] ,alpha= alpha)
+
+    # plt.xscale("log")
+
+    plt.xlabel("Hamming-Distance Statistics")
+    # plt.ylabel("Hamming Distance")
+    plt.legend()
+    plt.show()
+
+def plot_acceptance_prob_statistics(trajectory_stat_list: list, labels: list, figsize= (15,7)):
+
+    plt.figure(figsize= figsize)
+
+    lcomp = []
+    for tl in trajectory_stat_list: 
+        lcomp.append( np.min(tl['acceptance_prob']) )
+
+    bins = np.linspace(np.log10(np.min(lcomp))-0.1, 0, num=30)
+
+    alpha = 0.3
+    
+    for item in zip(trajectory_stat_list, labels):
+        
+        alpha += (0.7) / len(trajectory_stat_list)
+        plt.hist(np.log10(item[0]['acceptance_prob']), label= item[1], alpha = alpha, bins= bins, density= True)
+    plt.xlabel("Acceptance Probabilities | scale: log10")
+    plt.ylabel("Normalized Counts")
+    plt.legend()
+    plt.show()
+
 ###########################################################################################
 ## BAS Datasets ##
 ###########################################################################################
