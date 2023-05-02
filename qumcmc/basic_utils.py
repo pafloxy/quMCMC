@@ -533,3 +533,19 @@ def hebbing_learning(list_bas_state:list):
         wts+=array@array_t
     wts=wts-len(list_bas_state)*np.identity(size)
     return wts
+
+def get_cardinality_dataset(n_qubits, card=2):
+    def generate_binary_strings(bit_count):
+        binary_strings = []
+        def genbin(n, bs=''):
+            if len(bs) == n:
+                binary_strings.append(bs)
+            else:
+                genbin(n, bs + '0')
+                genbin(n, bs + '1')
+
+        genbin(bit_count)
+        return binary_strings
+
+    binary_strings = generate_binary_strings(n_qubits)
+    return [b for b in binary_strings if b.count("1")==card]
