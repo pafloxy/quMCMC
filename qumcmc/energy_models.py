@@ -9,13 +9,14 @@ from typing import Union
 from tqdm import tqdm
 import seaborn as sns
 
+from qulacs import PauliOperator, Observable
 
 ###########################################################################################
 ## ENERGY MODEL ##
 ###########################################################################################
 
 class IsingEnergyFunction:
-    """ A class to build the Ising Energy Function from data  
+    """ A class to build the Ising Energy Function from self  
     """
 
     def __init__(self, J: np.array, h: np.array, name:str = None) -> None:
@@ -69,7 +70,25 @@ class IsingEnergyFunction:
             plt.figure(figsize=(16,10))
             sns.heatmap(self.J, square= True, annot= False, cbar= True)
             
+    # def get_hamiltonian
+    def get_hamiltonian(self):
 
+        J = self.get_J; h = self.get_h
+
+        hamiltonian = Observable(self.num_spins)
+
+        for i in range (0, self.num_spins):
+
+            pstr = 'Z ' + str(i)
+            hamiltonian.add_operator(PauliOperator(pstr, coef= h[i]))
+
+            for j in range(0, i):
+
+                pstr = 'Z ' + str(i) + ' ' + 'Z ' + str(j)
+                hamiltonian.add_operator(PauliOperator(pstr, coef= J[i,j]))
+
+        return hamiltonian
+    
     def get_energy(self, state: Union[str, np.array]) -> float:
         """ Returns the energy of a given state
 
