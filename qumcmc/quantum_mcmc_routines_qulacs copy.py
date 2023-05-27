@@ -228,6 +228,101 @@ def run_qc_quantum_step(
     return state_obtained_binary
 
 
+# function for U=exp(-iHt) (a unitary evolution)
+# H =(1-gamma)*alpha*H_{prob} + gamma * H_mix
+def time_evol(num_spins:int, hamiltonian:np.array,
+                        current_q_state:QuantumState, 
+                        time_evol:float):
+    '''
+    Exact unitary time evolution under the hamiltonian H
+    Question: 
+    1.  What should be the type of input q_state? 
+    2. Should I return a QuantumState object or a simple computational bitstring?
+    '''
+    target_list=list(range(num_spins-1,0,-1))
+    
+    unitary_mat= np.round(np.expm(-1j*hamiltonian*time_evol),decimals=6)
+    unitary_time_evol_gate=DenseMatrix(target_list,matrix=unitary_mat)
+    # update the quantum state
+    unitary_time_evol_gate.update_quantum_state(current_q_state)
+    # I need to sample something here and return a bitstring
+    state_obtained=current_q_state.sampling(sampling_count=1)[0]
+    state_obtained_binary=f"{state_obtained:0{num_spins}b}"
+    return state_obtained_binary
+
+def quantum_mcmc_exact(
+    n_hops: int,
+    model: IsingEnergyFunction,
+    gamma,# we will be varying this
+    # alpha,
+    H_prob,
+    H_mix,
+    initial_state: Optional[str] = None,
+    temperature=1,
+    verbose:bool= False
+    #,single_qubit_mixer=True,pauli_index_list=[1,1]
+):
+    """
+    version 0.2
+    
+    ARGS:
+    ----
+    Nhops: Number of time you want to run mcmc
+    model:
+    return_last_n_states:
+    return_both:
+    temp:
+
+    RETURNS:
+    -------
+    Last 'return_last_n_states' elements of states so collected (default value=500). one can then deduce the distribution from it!
+    
+    """
+    num_spins = model.num_spins
+
+    if initial_state is None:
+        initial_state = MCMCState(get_random_state(num_spins), accepted=True)
+    else:
+        initial_state = MCMCState(initial_state, accepted=True)
+    
+    current_state: MCMCState = initial_state
+    #instantiate a QuantumState object for current_state: current_quantum_state
+    current_quantum_state=QuantumState(num_spins)
+    current_quantum_state.set_computational_basis(int(current_state.bitstring,2))
+
+    energy_s = model.get_energy(current_state.bitstring)
+    if verbose: print("starting with: ", current_state.bitstring, "with energy:", energy_s)
+    mcmc_chain = MCMCChain([current_state])
+
+    alpha=model.alpha
+    hamiltonian_mcmc=(1-gamma)*alpha*H_prob + gamma * H_mix #this needs to come here. 
+    # print(mcmc_chain)
+    for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
+        # get sprime
+        s_prime=time_evol(num_spins=num_spins,
+                            H=hamiltonian_mcmc,
+                            gamma=gamma,
+                            alpha=model.alpha,
+                            prev_q_state=current_quantum_state,
+                            time_evol=0.8
+                        )
+        if len(s_prime) == model.num_spins :
+            # accept/reject s_prime
+            energy_sprime = model.get_energy(s_prime)
+            accepted = test_accept(
+                energy_s, energy_sprime, temperature=temperature
+            )
+            mcmc_chain.add_state(MCMCState(s_prime, accepted))
+            if accepted:
+                current_state = mcmc_chain.current_state
+                #re-instantiate current state QuantumState object
+                current_quantum_state=QuantumState(num_spins)
+                current_quantum_state.set_computational_basis(int(current_state.bitstring,2))
+                energy_s = model.get_energy(current_state.bitstring)
+    return mcmc_chain 
+
+
+
 def quantum_enhanced_mcmc(
     n_hops: int,
     model: IsingEnergyFunction,
