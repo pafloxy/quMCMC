@@ -152,7 +152,7 @@ def fn_qc_h2(J:np.array, alpha:float, gamma:float, delta_time, single_qubit_mixe
         all_poss_combn_asc_order=list(combinations(indices,r))
         for i in range(0,len(all_poss_combn_asc_order)):
             target_list=list(all_poss_combn_asc_order[i])
-            angle=1
+            angle= -1 * gamma * delta_time ## @pafloxy : make the angle 'gamma' dependent
             qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,
                                                         pauli_ids=pauli_x_index, 
                                                         angle=angle)
@@ -185,8 +185,8 @@ def combine_2_qc(init_qc: QuantumCircuit, trottered_qc: QuantumCircuit) -> Quant
 ################################################################################################
 
 def run_qc_quantum_step(
-    qc_initialised_to_s: QuantumCircuit, model: IsingEnergyFunction, alpha, n_spins: int,
-    single_qubit_mixer=True, pauli_index_list=[1,1]) -> str:
+    qc_initialised_to_s: QuantumCircuit, model: IsingEnergyFunction, alpha, n_spins: int, gamma_range= (0.2, 0.6),
+    single_qubit_mixer=True, pauli_index_list=(1,1)) -> str:
 
     """
     Takes in a qc initialized to some state "s". After performing unitary evolution U=exp(-iHt)
@@ -205,7 +205,7 @@ def run_qc_quantum_step(
     J = model.get_J
 
     # init_qc=initialise_qc(n_spins=n_spins, bitstring='1'*n_spins)
-    gamma = np.round(np.random.uniform(0.25, 0.6), decimals=2)
+    gamma = np.round(np.random.uniform(low= min(gamma_range), high = max(gamma_range) ), decimals=6)
     time = np.random.choice(list(range(2, 12)))  # earlier I had [2,20]
     delta_time = 0.8 
     num_trotter_steps = int(np.floor((time / delta_time)))
@@ -220,7 +220,7 @@ def run_qc_quantum_step(
     )
     qc_for_mcmc = combine_2_qc(qc_initialised_to_s, trotter_ckt)# i can get rid of this!
     # run the circuit
-    q_state=QuantumState(qubit_count=n_spins)
+    q_state= QuantumState(qubit_count=n_spins)
     q_state.set_zero_state()
     qc_for_mcmc.update_quantum_state(q_state)
     state_obtained=q_state.sampling(sampling_count=1)[0]
@@ -234,7 +234,9 @@ def quantum_enhanced_mcmc(
     # alpha,
     initial_state: Optional[str] = None,
     temperature=1,
-    verbose:bool= False,single_qubit_mixer=True,pauli_index_list=[1,1]
+    gamma_range = (0.2, 0.6),
+    verbose:bool= False,single_qubit_mixer=True,pauli_index_list=[1,1],
+    name:str = "quMCMC"
 ):
     """
     version 0.2
@@ -263,14 +265,14 @@ def quantum_enhanced_mcmc(
     energy_s = model.get_energy(current_state.bitstring)
     if verbose: print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
-    mcmc_chain = MCMCChain([current_state])
+    mcmc_chain = MCMCChain([current_state], name= name)
 
     # print(mcmc_chain)
     for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
         # get sprime
         qc_s = initialise_qc(n_spins= model.num_spins, bitstring=current_state.bitstring)
         s_prime = run_qc_quantum_step(
-            qc_initialised_to_s=qc_s, model=model, alpha=model.alpha, n_spins= model.num_spins,
+            qc_initialised_to_s=qc_s, model=model, alpha=model.alpha, n_spins= model.num_spins, gamma_range= gamma_range,
             single_qubit_mixer=single_qubit_mixer, pauli_index_list=pauli_index_list
         )
         

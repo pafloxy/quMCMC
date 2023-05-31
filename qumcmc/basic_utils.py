@@ -61,12 +61,16 @@ class MCMCState:
     
 @dataclass(init=True)
 class MCMCChain:
-    def __init__(self, states: Optional[List[MCMCState]] = None):
+    def __init__(self, states: Optional[List[MCMCState]] = None, name: Optional[str] = 'MCMC'):
+        
+        self.name = name 
+
         if len(states) is None:
             self._states: List[MCMCState] = []
             self._current_state: MCMCState = None
             self._states_accepted: List[MCMCState] = []
             self.markov_chain: List[str] = []
+        
         else:
             self._states = states
             self._current_state : MCMCState = next((s for s in self._states[::-1] if s.accepted), None)
@@ -427,3 +431,121 @@ def plot_multiple_bargraphs(
         df_sorted_asc[:plot_first_few].plot.bar(rot=90, figsize=figsize)
     elif sort_desc == False and sort_asc == False:
         df[:plot_first_few].plot.bar(rot=90, figsize=figsize)
+
+
+def plot_hamming_distance_statistics(trajectory_stat_list: list, nspin: int, labels: list, figsize= (16,8) ):
+
+    
+
+    plt.figure(figsize= figsize)
+
+    bins = np.arange(0, nspin+1)
+    alpha = 0.3
+    for item in zip(trajectory_stat_list, labels):
+
+        alpha += (0.7) / len(trajectory_stat_list)
+        plt.bar(*np.unique(item[0]['hamming'], return_counts=True),label= item[1] ,alpha= alpha)
+
+    # plt.xscale("log")
+
+    plt.xlabel("Hamming-Distance Statistics")
+    # plt.ylabel("Hamming Distance")
+    plt.legend()
+    plt.show()
+
+def plot_acceptance_prob_statistics(trajectory_stat_list: list, labels: list, figsize= (15,7)):
+
+    plt.figure(figsize= figsize)
+
+    lcomp = []
+    for tl in trajectory_stat_list: 
+        lcomp.append( np.min(tl['acceptance_prob']) )
+
+    bins = np.linspace(np.log10(np.min(lcomp))-0.1, 0, num=30)
+
+    alpha = 0.3
+    
+    for item in zip(trajectory_stat_list, labels):
+        
+        alpha += (0.7) / len(trajectory_stat_list)
+        plt.hist(np.log10(item[0]['acceptance_prob']), label= item[1], alpha = alpha, bins= bins, density= True)
+    plt.xlabel("Acceptance Probabilities | scale: log10")
+    plt.ylabel("Normalized Counts")
+    plt.legend()
+    plt.show()
+
+###########################################################################################
+## BAS Datasets ##
+###########################################################################################
+
+from itertools import permutations, product
+class bas_dataset:
+    def __init__(self, grid_size:int):
+        self.grid_size=grid_size
+        all_combn=[''.join(p) for p in product('01',repeat=self.grid_size)]
+        all_combn.sort(key=lambda s: s.count('1'))
+        all_combn.pop(0);all_combn.pop(-1)
+        self.__all_combn=all_combn
+        self.bas_dict=self.bars_and_stripes_dataset()
+        self.dataset= self.bas_dict['stripes']+self.bas_dict['bars'] + self.bas_dict.get("both", [])
+    
+    def vertical_stripes(self):
+        vert_stripes=[j*self.grid_size for j in self.__all_combn]
+        return vert_stripes
+
+    def horizontal_bars(self):
+        hor_bars=[]
+        for l in self.__all_combn:
+            st=""
+            for j in l:
+                st=st+j*self.grid_size
+            hor_bars.append(st)
+        return hor_bars
+
+    def bars_and_stripes_dataset(self):
+        bas_dict={'stripes':self.vertical_stripes(),
+                  'bars':self.horizontal_bars(),
+                  # "both": ["0"*self.grid_size*self.grid_size, "1"*self.grid_size*self.grid_size]
+                 }
+        return bas_dict
+
+    ### create matrix of bitstring: meant for plotting
+    def bit_string_to_2d_matrix(self,bitstring, array_shape:int):
+        len_bs=len(bitstring)
+        list_bs_int=[eval(i) for i in list(bitstring)]
+        arr_bs=np.reshape(list_bs_int,(array_shape, array_shape))
+        return arr_bs
+
+    ### plot pixels
+    def draw_pixelplot(self,bitstring:str,array_shape:int):
+        im_array=self.bit_string_to_2d_matrix(bitstring,array_shape)
+        plt.title(f"pixel plot for bitstring: {bitstring}")
+        pixel_plot=plt.imshow(im_array,cmap='Greens',interpolation='nearest')
+        plt.colorbar(pixel_plot)
+        plt.show()
+
+def hebbing_learning(list_bas_state:list):
+    size=len(list_bas_state[0])
+    wts=0
+    for i in list_bas_state:
+        arr=np.array([-1 if elem == "0" else 1 for elem in i])
+        array=np.reshape(arr,(size,1));array_t=np.transpose(array)
+        wts+=array@array_t
+    wts=wts-len(list_bas_state)*np.identity(size)
+    return wts
+
+def get_cardinality_dataset(n_qubits, card=2):
+    def generate_binary_strings(bit_count):
+        binary_strings = []
+        def genbin(n, bs=''):
+            if len(bs) == n:
+                binary_strings.append(bs)
+            else:
+                genbin(n, bs + '0')
+                genbin(n, bs + '1')
+
+        genbin(bit_count)
+        return binary_strings
+
+    binary_strings = generate_binary_strings(n_qubits)
+    return [b for b in binary_strings if b.count("1")==card]

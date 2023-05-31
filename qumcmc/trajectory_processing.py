@@ -169,7 +169,7 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
 
     trajectory = mcmc_chain.states
 
-    acceptance_prob = lambda si, sf: min(1, model.get_boltzmann_factor(sf.bitstring) / model.get_boltzmann_factor(si.bitstring) )
+    # acceptance_prob = lambda si, sf: min(1, model.get_boltzmann_factor(sf.bitstring) / model.get_boltzmann_factor(si.bitstring) )
     hamming_diff = lambda si, sf: hamming_dist(si.bitstring, sf.bitstring)
     energy_diff = lambda si, sf: model.get_energy(sf.bitstring) - model.get_energy(si.bitstring)
 
@@ -182,7 +182,7 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
         
         if verbose : print('trans: '+ str(trajectory[current_state_index].bitstring) + ' -> '+ str(trajectory[proposed_state_index].bitstring)+" status: "+str(trajectory[proposed_state_index].accepted)  )
 
-        if 'acceptance_prob' in to_observe: acceptance_statistic.append( acceptance_prob(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        # if 'acceptance_prob' in to_observe: acceptance_statistic.append( acceptance_prob(trajectory[current_state_index], trajectory[proposed_state_index] ) )
         if 'energy' in to_observe: energy_statistic.append( energy_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
         if 'hamming' in to_observe: hamming_statistic.append( hamming_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
 
@@ -191,6 +191,20 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
             current_state_index =  proposed_state_index
         
         proposed_state_index += 1
+
+    
+    if 'acceptance_prob' in to_observe:
+        current_bitstring = trajectory[0].bitstring
+        counter = 1
+        for st in trajectory:
+            if st.accepted and st.bitstring!=current_bitstring:
+                acceptance_statistic.append(1/counter)
+                current_bitstring = st.bitstring
+                counter = 1
+            else:
+                counter += 1
+        acceptance_statistic.append(1/counter)
+
 
     trajectory_statistics = {}
     if 'acceptance_prob' in to_observe: trajectory_statistics['acceptance_prob'] = np.array(acceptance_statistic)
