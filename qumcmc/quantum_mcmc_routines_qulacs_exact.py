@@ -22,7 +22,7 @@ from qulacs import QuantumState, QuantumCircuit
 from qulacs import Observable
 from qulacsvis import circuit_drawer
 from scipy.linalg import expm
-from qulacs.gate import DenseMatrix
+from qulacs.gate import DenseMatrix, SparseMatrix
 from qulacs.gate import X, Y, Z  , Pauli, Identity, merge
 
 from itertools import combinations
@@ -68,7 +68,7 @@ def create_X_mixer_hamiltonian(num_spins:int,weight_individual_pauli:int):
 def quantum_mcmc_exact(
     n_hops: int,
     model: IsingEnergyFunction,
-    H_mix:Observable,
+    H_mix: Observable,
     initial_state: Optional[str] = None,
     gamma_range:tuple=(0.2,0.6),# we will be varying this
     temperature=1,
@@ -118,6 +118,7 @@ def quantum_mcmc_exact(
                           hamiltonian=hamiltonian_mcmc,
                           current_q_state=current_quantum_state,
                           time_evol=time_evol)
+        #print("sprime is:",s_prime)
         if len(s_prime) == model.num_spins :
             # accept/reject s_prime
             energy_sprime = model.get_energy(s_prime)
@@ -131,4 +132,5 @@ def quantum_mcmc_exact(
                 current_quantum_state=QuantumState(num_spins)
                 current_quantum_state.set_computational_basis(int(current_state.bitstring,2))
                 energy_s = model.get_energy(current_state.bitstring)
+        #print("s_current is:",current_state.bitstring)
     return mcmc_chain 
