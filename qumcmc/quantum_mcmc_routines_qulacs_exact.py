@@ -54,6 +54,7 @@ def time_evolution(num_spins:int, hamiltonian:np.array,
     state_obtained_binary=f"{state_obtained:0{num_spins}b}"
     return state_obtained_binary
 
+
 def create_X_mixer_hamiltonian(num_spins:int,weight_individual_pauli:int):
     mixer_hamiltonian=Observable(num_spins)
     print("type_mixer_hamiltonian:",type(mixer_hamiltonian))
