@@ -49,6 +49,7 @@ def fn_qckt_problem_half(J:np.array,h, num_spins:int,
     
     # 2- qubit term 
     pauli_z_index=[3,3]# (Z tensor Z)
+    ### 
     theta_array_2qubit= (-2*(1-gamma)*alpha*delta_time)*J #
     for j in range(0,num_spins-1):
         for k in range(j+1, num_spins):
@@ -58,7 +59,8 @@ def fn_qckt_problem_half(J:np.array,h, num_spins:int,
                                                 pauli_ids=pauli_z_index,
                                                 angle=angle)
     # single qubit terms
-    theta_array_1qubit=(-2*(1-gamma)*alpha*delta_time)*np.array(h)
+    ### 
+    theta_array_1qubit=(2*-1*(1-gamma)*alpha*delta_time)*np.array(h)
     #target_qubit_list_1qubit=list(range(num_spins-1,-1,-1))
     for j in range(0,num_spins):
         target_qubit=num_spins-1-j
@@ -77,7 +79,9 @@ def fn_qckt_X_mixer(num_spins:int, gamma:float, delta_time:float,
         target_qubits_list=list(range(num_spins-1,-1,-1))
         angle=2*gamma*delta_time
         for j in range(0,num_spins):
-            qc_evolution_under_mixer.add_RX_gate(index=target_qubits_list[j],angle=angle)
+            #qc_evolution_under_mixer.add_RX_gate(index=target_qubits_list[j],angle=angle)
+            qc_evolution_under_mixer.add_RotX_gate(index=target_qubits_list[j],
+                                                    angle=angle)
 
     elif pauli_weight_single_term_mixer!=1:
         pauli_id_single_term_in_mixer=[1]*pauli_weight_single_term_mixer
@@ -85,6 +89,7 @@ def fn_qckt_X_mixer(num_spins:int, gamma:float, delta_time:float,
         all_possible_qubit_combinations=list(combinations(qubit_indices,r))# in ascending order
         # create the circuit
         for i in range(0,len(all_possible_qubit_combinations)):
+            
             target_qubits_list=list(all_possible_qubit_combinations[i])
             angle= 2*gamma* delta_time
             qc_evolution_under_mixer.add_multi_Pauli_rotation_gate(index_list=target_qubits_list,
@@ -97,9 +102,10 @@ def trotter(num_spins:int, qckt_1:QuantumCircuit,
                             qckt_2:QuantumCircuit, 
                             num_trotter_steps:int) -> QuantumCircuit:
     qc_combine=QuantumCircuit(num_spins)
-    for _ in range(0,num_trotter_steps):
-        qc_combine.merge_circuit(qckt_1)
+    for _ in range(0,num_trotter_steps-1):
         qc_combine.merge_circuit(qckt_2)
+        qc_combine.merge_circuit(qckt_1)
+    qc_combine.merge_circuit(qckt_2)# this is first order trotterisation
     return qc_combine
 
 ####
@@ -113,9 +119,9 @@ def run_qmcmc_quantum_ckt(
     h=model.get_h
     J=model.get_J
 
+    time=np.random.choice(list(range(2, 12)))
     delta_time=0.8
     gamma=np.round(np.random.uniform(low= min(gamma_range), high = max(gamma_range) ), decimals=6)
-    time=np.random.choice(list(range(2, 12)))
     num_trotter_steps=int(np.floor((time / delta_time)))
 
     #create the circuit
