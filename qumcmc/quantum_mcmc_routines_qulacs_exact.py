@@ -88,8 +88,7 @@ def quantum_mcmc_exact(
 
     RETURNS:
     -------
-    Last 'return_last_n_states' elements of states so collected (default value=500). one can then deduce the distribution from it!
-    
+    mcmc chain. 
     """
     num_spins = model.num_spins
 
@@ -108,11 +107,17 @@ def quantum_mcmc_exact(
     mcmc_chain = MCMCChain([current_state])
 
     alpha=model.alpha
-    H_prob=model.get_hamiltonian() 
-    # print(mcmc_chain)
+    H_prob_obj=model.get_hamiltonian()
+    H_prob_array=H_prob_obj.get_matrix().toarray()
+    H_mixer_array=H_mix.get_matrix().toarray()
+    
+    #if I keep gamma fixed
+    #gamma=0.5#float(np.round(np.random.uniform(low= min(gamma_range), high = max(gamma_range) ), decimals=6))
+    #hamiltonian_mcmc=(1-gamma)*alpha*(-1)*H_prob_array + gamma * H_mixer_array #this needs to come here.
+    
     for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
         gamma=float(np.round(np.random.uniform(low= min(gamma_range), high = max(gamma_range) ), decimals=6))
-        hamiltonian_mcmc=(1-gamma)*alpha*(-1)*H_prob.get_matrix().toarray() + gamma * H_mix.get_matrix().toarray() #this needs to come here.
+        hamiltonian_mcmc=(1-gamma)*alpha*(-1)*H_prob_array + gamma * H_mixer_array #this needs to come here.
         time_evol=int(np.random.choice(list(range(2,12))))
         # get sprime
         s_prime=time_evolution(num_spins=num_spins,
