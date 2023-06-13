@@ -165,7 +165,9 @@ def calculate_runnning_magnetisation(mcmc_chain: MCMCChain, skip_steps: int = 1)
     return list_mag_after_each_step
 
 from typing import Union        
-def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFunction, Exact_Sampling],to_observe:set = {'acceptance_prob','kldiv', 'hamming', 'energy', 'magnetisation'} ,verbose:bool= False):
+def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFunction, Exact_Sampling],
+                                to_observe:set = {'acceptance_prob','kldiv', 'hamming', 'energy', 'magnetisation'} 
+                                ,verbose:bool= False):
 
     trajectory = mcmc_chain.states
 
@@ -197,7 +199,7 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
         current_bitstring = trajectory[0].bitstring
         counter = 1
         for st in trajectory:
-            if st.accepted and st.bitstring!=current_bitstring:
+            if st.accepted and st.bitstring!=current_bitstring: # not, and, or.
                 acceptance_statistic.append(1/counter)
                 current_bitstring = st.bitstring
                 counter = 1
