@@ -38,6 +38,11 @@ def initialise_qc(n_spins: int, bitstring: str) -> QuantumCircuit :
             qc_in.add_X_gate(len_str_in - 1 - i)
     return qc_in
 
+
+### note: (13th June 2023)
+# in qulacs, the single qubit rotation operator is defined as exp( + i THETA/2 X/Y/Z)
+# similarly, multi qubit rotation operator is defined as exp (+i bla bla bla /2)
+
 def fn_qckt_problem_half(J:np.array,h, num_spins:int, 
                         gamma:float, alpha:float, delta_time=0.8) -> QuantumCircuit:
     ''' 
@@ -50,11 +55,11 @@ def fn_qckt_problem_half(J:np.array,h, num_spins:int,
     # 2- qubit term 
     pauli_z_index=[3,3]# (Z tensor Z)
     ### 
-    theta_array_2qubit= (-2*(1-gamma)*alpha*delta_time)*J #
+    theta_array_2qubit= (2*-1*(1-gamma)*alpha*delta_time)*J #
     for j in range(0,num_spins-1):
         for k in range(j+1, num_spins):
             target_qubit_list=[num_spins-1-j,num_spins-1-k]
-            angle=theta_array_2qubit[j,k]
+            angle= -1*theta_array_2qubit[j,k]# since qulacs convention is +1 in the rotation operator
             qc_problem_hamiltonian_half.add_multi_Pauli_rotation_gate(index_list=target_qubit_list,
                                                 pauli_ids=pauli_z_index,
                                                 angle=angle)
@@ -64,8 +69,9 @@ def fn_qckt_problem_half(J:np.array,h, num_spins:int,
     #target_qubit_list_1qubit=list(range(num_spins-1,-1,-1))
     for j in range(0,num_spins):
         target_qubit=num_spins-1-j
+        angle= -1*theta_array_1qubit[j]
         qc_problem_hamiltonian_half.add_RZ_gate(index=target_qubit,
-                            angle=theta_array_1qubit[j])
+                            angle=angle)
     
     return qc_problem_hamiltonian_half
 
@@ -77,10 +83,10 @@ def fn_qckt_X_mixer(num_spins:int, gamma:float, delta_time:float,
     qubit_indices=list(range(0,num_spins))
     if pauli_weight_single_term_mixer==1:
         target_qubits_list=list(range(num_spins-1,-1,-1))
-        angle=2*gamma*delta_time
+        angle=-1*2*gamma*delta_time# additional -1 factor since in qulacs convention is +1 in the rotation operator
         for j in range(0,num_spins):
             #qc_evolution_under_mixer.add_RX_gate(index=target_qubits_list[j],angle=angle)
-            qc_evolution_under_mixer.add_RotX_gate(index=target_qubits_list[j],
+            qc_evolution_under_mixer.add_RX_gate(index=target_qubits_list[j],
                                                     angle=angle)
 
     elif pauli_weight_single_term_mixer!=1:
@@ -91,7 +97,7 @@ def fn_qckt_X_mixer(num_spins:int, gamma:float, delta_time:float,
         for i in range(0,len(all_possible_qubit_combinations)):
             
             target_qubits_list=list(all_possible_qubit_combinations[i])
-            angle= 2*gamma* delta_time
+            angle= -1*2*gamma* delta_time # additional -1 factor since in qulacs convention is +1 in the rotation operator
             qc_evolution_under_mixer.add_multi_Pauli_rotation_gate(index_list=target_qubits_list,
                                                             pauli_ids=pauli_id_single_term_in_mixer,
                                                             angle=angle)
@@ -114,13 +120,12 @@ def run_qmcmc_quantum_ckt(
         model: IsingEnergyFunction,
         alpha:float,num_spins:int,
         gamma_range=(0.2,0.6),
-        pauli_weight_of_terms_in_Xmixer:int=1) -> str:
+        pauli_weight_of_terms_in_Xmixer:int=1,delta_time=0.8) -> str:
     
     h=model.get_h
     J=model.get_J
 
     time=np.random.choice(list(range(2, 12)))
-    delta_time=0.8
     gamma=np.round(np.random.uniform(low= min(gamma_range), high = max(gamma_range) ), decimals=6)
     num_trotter_steps=int(np.floor((time / delta_time)))
 
@@ -152,7 +157,8 @@ def quantum_enhanced_mcmc_2(
         initial_state:Optional[str]=None,
         temperature:float=1,
         gamma_range=(0.2,0.6),
-        verbose:bool=False, pauli_weight_x_mixer:int=1,
+        delta_time=0.8, pauli_weight_x_mixer:int=1,
+        verbose:bool=False,
         name:str = "Q-MCMC"):
     """
         ARGS:
@@ -186,7 +192,8 @@ def quantum_enhanced_mcmc_2(
                                         model=model,
                                         alpha=model.alpha, num_spins=num_spins,
                                         gamma_range=gamma_range,
-                                        pauli_weight_of_terms_in_Xmixer=pauli_weight_x_mixer
+                                        pauli_weight_of_terms_in_Xmixer=pauli_weight_x_mixer,
+                                        delta_time=delta_time
                                         )
         if len(s_prime) == model.num_spins :
             # accept/reject s_prime

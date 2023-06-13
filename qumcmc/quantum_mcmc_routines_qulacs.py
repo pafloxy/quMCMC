@@ -52,7 +52,7 @@ def fn_qc_h1(num_spins: int, gamma, alpha, h:list, delta_time=0.8) -> QuantumCir
     h: list of field at each site
     delta_time: total evolution time time/num_trotter_steps
     """
-    b_list=list( ((gamma-1)*(alpha))* np.array(h))
+    b_list=list( (-1*(1-gamma)*(alpha))* np.array(h))
     qc_h1 = QuantumCircuit(num_spins)
     for j in range(0, num_spins):
         unitary_gate=DenseMatrix(index=num_spins-1-j,
@@ -76,15 +76,13 @@ def fn_qc_h2(J:np.array, alpha:float, gamma:float,
     num_spins=np.shape(J)[0]
     qc_for_evol_h2=QuantumCircuit(num_spins)
     # calculating theta_jk
-    # upper_triag_without_diag=np.triu(J,k=1)
-    # theta_array=(-2*(1-gamma)*alpha*delta_time)*upper_triag_without_diag
-    theta_array = (-2*(1-gamma)*alpha*delta_time)*J # X2 is intentional because rotation operator has a factor of 2 in Denominator
+    theta_array = (2*-1*(1-gamma)*alpha*delta_time)*J # *2 is intentional because rotation operator has a factor of 2 in Denominator in its phase.
     pauli_z_index=[3,3]## Z tensor Z
     for j in range(0,num_spins-1):
         for k in range(j+1,num_spins):
             #print("j,k is:",(j,k))
             target_list=[num_spins-1-j,num_spins-1-k]#num_spins-1-j,num_spins-1-(j+1)
-            angle=theta_array[j,k]
+            angle=-1*theta_array[j,k]# additional -1 factor since in qulacs convention is +1 in the rotation operator
             qc_for_evol_h2.add_multi_Pauli_rotation_gate(index_list=target_list,
                                                         pauli_ids=pauli_z_index,angle=angle)
     return qc_for_evol_h2
