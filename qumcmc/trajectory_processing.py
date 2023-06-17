@@ -186,7 +186,7 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
 
         # if 'acceptance_prob' in to_observe: acceptance_statistic.append( acceptance_prob(trajectory[current_state_index], trajectory[proposed_state_index] ) )
         if 'energy' in to_observe: energy_statistic.append( energy_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
-        if 'hamming' in to_observe: hamming_statistic.append( hamming_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
+        #if 'hamming' in to_observe: hamming_statistic.append( hamming_diff(trajectory[current_state_index], trajectory[proposed_state_index] ) )
 
         
         if trajectory[proposed_state_index].accepted :
@@ -194,7 +194,7 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
         
         proposed_state_index += 1
 
-    
+    ### acceptance probability 
     if 'acceptance_prob' in to_observe:
         current_bitstring = trajectory[0].bitstring
         counter = 1
@@ -207,11 +207,30 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
                 counter += 1
         acceptance_statistic.append(1/counter)
 
+    ### hamming distance caln
+    num_spins=model.num_spins
+    hamming_dist_keys=list(range(0,num_spins+1))
+    init_val_keys=dict(zip(['accepted', 'rejected', 'total'],[0,0,0]))
+    list_init_val_keys=[init_val_keys.copy() for i in range(0,len(hamming_dist_keys))]
+    dict_hamming_distance_statistics=dict(zip(hamming_dist_keys, list_init_val_keys))
+    
+    current_bs_idx=0
+    for proposed_bs_idx in range(1,len(trajectory)):
+        hamming_dist_val=hamming_diff(si=trajectory[current_bs_idx],
+                                        sf=trajectory[proposed_bs_idx])
+        if trajectory[proposed_bs_idx].accepted:
+            dict_hamming_distance_statistics[hamming_dist_val]['accepted']+=1
+            current_bs_idx=proposed_bs_idx
+        else:
+            dict_hamming_distance_statistics[hamming_dist_val]['rejected']+=1
+    
+    for i in range(0,num_spins+1):
+        dict_hamming_distance_statistics[i]['total']=dict_hamming_distance_statistics[i]['accepted']+dict_hamming_distance_statistics[i]['rejected']
 
     trajectory_statistics = {}
     if 'acceptance_prob' in to_observe: trajectory_statistics['acceptance_prob'] = np.array(acceptance_statistic)
     if 'energy' in to_observe: trajectory_statistics['energy'] = np.array(energy_statistic)
-    if 'hamming' in to_observe: trajectory_statistics['hamming'] = np.array(hamming_statistic)
+    if 'hamming' in to_observe: trajectory_statistics['hamming'] = dict_hamming_distance_statistics#np.array(hamming_statistic)
     if 'kldiv' in to_observe:
         rkl = calculate_running_kl_divergence(model.boltzmann_pd, mcmc_chain, skip_steps= 1)
         trajectory_statistics['kldiv'] = np.array(rkl)
