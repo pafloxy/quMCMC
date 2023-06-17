@@ -22,6 +22,7 @@ from qulacs import QuantumState, QuantumCircuit
 from qulacs import Observable
 from qulacsvis import circuit_drawer
 from scipy.linalg import expm
+#from scipy.sparse.linalg import expm
 from qulacs.gate import DenseMatrix, SparseMatrix
 from qulacs.gate import X, Y, Z  , Pauli, Identity, merge
 
