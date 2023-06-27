@@ -23,7 +23,7 @@ but similar analysis for different ranges of $\gamma$ is not known.
 #### ***Experiments :
 
 1.  **Confirming effect of $\gamma$ variation without enhanced (informed ?) $H_{mix}$ design.
-	1. Take the usual $H^{v}_{mix} = \sum_{i=0}^{n} X_{i}$, (aka. *vanilla mixer* ) and obtain sampling results for a generic Random Ising Model hamiltonian.
+	1. Take the usual $H^{v}_{mix} = \Sigma_{i=0}^{n} X_{i}$, (aka. *vanilla mixer* ) and obtain sampling results for a generic Random Ising Model hamiltonian.
 	2. Average the effect over different instance of the randomly generated ising models.
 	3. Run the simulations for different ranges of gamma, $\gamma_{perturbative} \approx \{0.01\}$, $\gamma_{low} \approx \{0.1,0.2\}$,  $\gamma_{mid} \approx \{0.5,0.6\}$ , $\gamma_{high} \approx \{0.8,0.9\}$ 
        
