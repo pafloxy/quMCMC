@@ -197,7 +197,7 @@ def js_divergence(dict_p:dict,dict_q:dict, prelim_check=True):
     p=DiscreteProbabilityDistribution(dict_p).index_sorted_dict()
     q=DiscreteProbabilityDistribution(dict_q).index_sorted_dict()
     p_arr,q_arr=np.array(list(p.values())).reshape((len(p))), np.array(list(q.values())).reshape((len(q)))
-    val_m = np.round(0.5 * (p_arr + q_arr),decimals=8)
+    val_m = np.round(0.5 * (p_arr + q_arr),decimals=12)
     #print("val_m:");print(val_m)
     m=dict(zip(list(p.keys()),val_m))
     #print("m:");print(m)

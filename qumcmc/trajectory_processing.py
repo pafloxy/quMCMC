@@ -130,7 +130,7 @@ def calculate_running_kl_divergence(actual_boltz_distn: DiscreteProbabilityDistr
     return list_kl_after_each_step
 
 
-def calculate_running_js_divergence(actual_boltz_distn: DiscreteProbabilityDistribution, mcmc_chain: MCMCChain, skip_steps: int = 1) -> list:
+def calculate_running_js_divergence(actual_boltz_distn: DiscreteProbabilityDistribution, mcmc_chain: MCMCChain, skip_steps: int = 1,prelim_check=False) -> list:
     num_nhops = len(mcmc_chain.states)
     
     list_js_after_each_step=[]
@@ -139,7 +139,7 @@ def calculate_running_js_divergence(actual_boltz_distn: DiscreteProbabilityDistr
 
         temp_distn_model = mcmc_chain.get_accepted_dict(normalize=True, until_index=step_num)
 
-        js_temp=js_divergence(actual_boltz_distn,temp_distn_model, prelim_check= False)
+        js_temp=js_divergence(actual_boltz_distn,temp_distn_model, prelim_check= prelim_check)
 
         list_js_after_each_step.append(js_temp)
 

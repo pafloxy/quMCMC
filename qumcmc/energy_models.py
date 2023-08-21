@@ -151,7 +151,7 @@ class Exact_Sampling(IsingEnergyFunction):
         self.exact_sampling_status = False
         self.run_exact_sampling(self.beta, verbose= verbose)
 
-    def sampling_summary(self, plot_dist:bool=True, show_threshold=0.01):
+    def sampling_summary(self, plot_dist:bool=True, show_threshold=0.01,ylabel='Prob'):
         
         if self.exact_sampling_status :
             tmp = np.array(list(self.boltzmann_pd.values()))
@@ -168,6 +168,7 @@ class Exact_Sampling(IsingEnergyFunction):
 
             if plot_dist:
                 plot_bargraph_desc_order(self.boltzmann_pd, label= 'Boltzmann Dist.', plot_first_few= count_non_zero)
+                plt.ylabel(ylabel)
 
         else:
             raise RuntimeError("Please Run Exact Sampling at any specified temperature first")
