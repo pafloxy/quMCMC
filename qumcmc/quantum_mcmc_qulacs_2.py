@@ -157,18 +157,25 @@ def quantum_enhanced_mcmc_2(
         initial_state:Optional[str]=None,
         temperature:float=1,
         gamma_range=(0.2,0.6),
-        delta_time=0.8, pauli_weight_x_mixer:int=1,
+        delta_time=0.8, 
+        mixer: dict = {'fixed': 1 },
+        # pauli_weight_x_mixer:int=1,
         verbose:bool=False,
         name:str = "Q-MCMC"):
     """
-        ARGS:
+    ARGS:
     ----
     Nhops: Number of time you want to run mcmc
     model:
     return_last_n_states:
     return_both:
     temp:
-
+    mixer: dict 
+        Specifies the type fo mixer configuration used during MCMC
+        {'fixed': n} : Fixed mixer for each MCMC step; mixer wt = n      
+        {'alternate': {wt1:p1, wt2:p2, .. }} : Alternating mixers for each MCMC step; 
+                                                1. Mixers are picked according to the input dictionary, mixer of wt1 with probabiity p1 and so on.  
+                                                2. If just a set is passed, then they are assumed to have uniform probability 
     RETURNS:
     -------
     Last 'return_last_n_states' elements of states so collected (default value=500). one can then deduce the distribution from it!
@@ -186,26 +193,52 @@ def quantum_enhanced_mcmc_2(
 
     mcmc_chain = MCMCChain([current_state], name= name)
 
-    for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
-        # get s_prime
-        s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
-                                        model=model,
-                                        alpha=model.alpha, num_spins=num_spins,
-                                        gamma_range=gamma_range,
-                                        pauli_weight_of_terms_in_Xmixer=pauli_weight_x_mixer,
-                                        delta_time=delta_time
-                                        )
-        if len(s_prime) == model.num_spins :
-            # accept/reject s_prime
-            energy_sprime = model.get_energy(s_prime)
-            accepted = test_accept(
-                energy_s, energy_sprime, temperature=temperature
-            )
-            mcmc_chain.add_state(MCMCState(s_prime, accepted))
-            if accepted:
-                current_state = mcmc_chain.current_state
-                energy_s = model.get_energy(current_state.bitstring)
-        else: pass
+    if 'fixed' in mixer.keys() :
+        for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
+            # get s_prime
+            s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
+                                            model=model,
+                                            alpha=model.alpha, num_spins=num_spins,
+                                            gamma_range=gamma_range,
+                                            pauli_weight_of_terms_in_Xmixer= mixer['fixed'],
+                                            delta_time=delta_time
+                                            )
+            if len(s_prime) == model.num_spins :
+                # accept/reject s_prime
+                energy_sprime = model.get_energy(s_prime)
+                accepted = test_accept(
+                    energy_s, energy_sprime, temperature=temperature
+                )
+                mcmc_chain.add_state(MCMCState(s_prime, accepted))
+                if accepted:
+                    current_state = mcmc_chain.current_state
+                    energy_s = model.get_energy(current_state.bitstring)
+            else: pass    
+
+
+    elif 'alternate' in mixer.keys() :
+        for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
+            # get s_prime
+            s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
+                                            model=model,
+                                            alpha=model.alpha, num_spins=num_spins,
+                                            gamma_range=gamma_range,
+                                            pauli_weight_of_terms_in_Xmixer= np.random.choice(list(mixer['alternate'].keys()), p= list(mixer['alternate'].values()) ) ,
+                                            delta_time=delta_time
+                                            )
+            if len(s_prime) == model.num_spins :
+                # accept/reject s_prime
+                energy_sprime = model.get_energy(s_prime)
+                accepted = test_accept(
+                    energy_s, energy_sprime, temperature=temperature
+                )
+                mcmc_chain.add_state(MCMCState(s_prime, accepted))
+                if accepted:
+                    current_state = mcmc_chain.current_state
+                    energy_s = model.get_energy(current_state.bitstring)
+            else: pass    
+        
+        
     return mcmc_chain
 
 
