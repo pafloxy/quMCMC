@@ -219,11 +219,16 @@ def quantum_enhanced_mcmc_2(
     elif 'alternate' in mixer.keys() :
         for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
             # get s_prime
+            if isinstance(mixer['alternate'], dict):
+                mixer_wt = np.random.choice(list(mixer['alternate'].keys()), p= list(mixer['alternate'].values()) )
+            if isinstance(mixer['alternate'], set)
+                mixer_wt = np.random.choice(list(mixer['alternate'].keys()))
+                
             s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
                                             model=model,
                                             alpha=model.alpha, num_spins=num_spins,
                                             gamma_range=gamma_range,
-                                            pauli_weight_of_terms_in_Xmixer= np.random.choice(list(mixer['alternate'].keys()), p= list(mixer['alternate'].values()) ) ,
+                                            pauli_weight_of_terms_in_Xmixer= mixer_wt ,
                                             delta_time=delta_time
                                             )
             if len(s_prime) == model.num_spins :
