@@ -221,9 +221,9 @@ def quantum_enhanced_mcmc_2(
             # get s_prime
             if isinstance(mixer['alternate'], dict):
                 mixer_wt = np.random.choice(list(mixer['alternate'].keys()), p= list(mixer['alternate'].values()) )
-            if isinstance(mixer['alternate'], set)
+            if isinstance(mixer['alternate'], set):
                 mixer_wt = np.random.choice(list(mixer['alternate'].keys()))
-                
+
             s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
                                             model=model,
                                             alpha=model.alpha, num_spins=num_spins,

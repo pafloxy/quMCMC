@@ -48,4 +48,6 @@ but similar analysis for different ranges of $\gamma$ is not known.
 
    
  
-
+### Meeting Aug'20
+- run local sampling for multiple 3 secs
+- sampling with interleaved mixers of different weights
