@@ -8,7 +8,7 @@ import pandas as pd
 
 from tqdm import tqdm
 
-
+from itertools import permutations
 from collections import Counter
 from collections_extended import IndexedDict
 from typing import Optional, List, Dict
@@ -143,6 +143,14 @@ def merge_2_dict(dict1, dict2):
 
 def sort_dict_by_keys(dict_in:dict):
   return dict(IndexedDict(sorted(dict_in.items())))
+
+def xor_strings(s1, s2):
+    # Ensure strings are of the same length
+    assert len(s1) == len(s2), "Strings must be of the same length"
+    l = len(s1)
+    # Convert each character to binary, perform XOR, then convert back to character
+    xor_result = int(s1, 2) ^ int(s2, 2)
+    return int_to_binary(xor_result, l)
 
 
 def states(num_spins: int) -> list:
@@ -363,7 +371,17 @@ def fn_states_not_accepted(
 
 def int_to_str(state_obtained, nspin):
     return f"{state_obtained:0{nspin}b}"
-
+def random_bstr(n,k):
+    assert n >= k
+    s = '1'*k + '0'*(n-k)
+    perm = list(permutations(s))
+    r = perm[np.random.randint(0, len(perm))]
+    rnd_str = ''
+    for i in r :
+        rnd_str += i
+    
+    return rnd_str
+    
 int_to_binary = lambda state_obtained, n_spins : f"{state_obtained:0{n_spins}b}"
 binary_to_bipolar = lambda string : 2.0 * float(string) - 1.0
 

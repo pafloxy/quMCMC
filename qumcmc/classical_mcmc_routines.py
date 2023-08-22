@@ -8,7 +8,7 @@ from .energy_models import IsingEnergyFunction
 from typing import Dict, List, Optional
 from tqdm import tqdm
 from collections import Counter
-from .basic_utils import MCMCChain, MCMCState
+from .basic_utils import MCMCChain, MCMCState, xor_strings, random_bstr
 
 
 
@@ -43,14 +43,14 @@ def test_accept(
 
     return acceptance > np.random.rand()
 
-
 def classical_mcmc(
     n_hops: int,
     model: IsingEnergyFunction ,
     initial_state: Optional[str] = None,
     temperature: float = 1.,
     verbose:bool= False,
-    method:str= 'uniform'
+    method:str= 'uniform',
+    num_flips:int = 1
 ):
     """
     ARGS:
@@ -60,6 +60,7 @@ def classical_mcmc(
     initial_state:
     temperature:
     method : Choose between proposition strategy -> 'uniform' / 'local'
+    num_flips : no. of local flips, if "method == local" 
     
     RETURNS:
     --------
@@ -87,11 +88,8 @@ def classical_mcmc(
         if method == 'uniform' :
             s_prime = get_random_state(num_spins)
         elif method == 'local' :
-            n_local_updates = 1
-            r_idx = np.random.randint(0, num_spins)
-            if current_state.bitstring[r_idx] == '1' : s_r_idx = '0'; 
-            else: s_r_idx = '1'
-            s_prime = current_state.bitstring[:r_idx] + s_r_idx + current_state.bitstring[r_idx+1:]
+            rbstr = random_bstr(num_spins, num_flips)
+            s_prime = xor_strings(current_state.bitstring, rbstr)
 
         # accept/reject s_prime
         energy_sprime = model.get_energy(s_prime)   # to make this scalable, I think you need to calculate energy ratios.
