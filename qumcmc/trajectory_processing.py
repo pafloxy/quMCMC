@@ -146,7 +146,7 @@ def calculate_running_js_divergence(actual_boltz_distn: DiscreteProbabilityDistr
 
     return list_js_after_each_step
 
-def calculate_runnning_magnetisation(mcmc_chain: MCMCChain, skip_steps: int = 1) -> list:    
+def calculate_runnning_magnetisation(mcmc_chain: MCMCChain, skip_steps: int = 1, verbose:bool= False) -> list:    
     
     num_nhops = len(mcmc_chain.states)
 
@@ -154,7 +154,7 @@ def calculate_runnning_magnetisation(mcmc_chain: MCMCChain, skip_steps: int = 1)
 
     magnetisation_dict = dict([ (state, magnetization_of_state(state) ) for state  in  mcmc_chain.accepted_states ])
 
-    for step_num in tqdm(range(1, num_nhops, skip_steps)): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
+    for step_num in tqdm(range(1, num_nhops, skip_steps), disable= not verbose): ##pafloxy : starting at 100 instead of 0 , neglecting effect of intital states
 
         temp_distn_model = DiscreteProbabilityDistribution( mcmc_chain.get_accepted_dict(normalize=True, until_index=step_num) )
         
