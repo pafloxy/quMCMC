@@ -492,6 +492,41 @@ def plot_acceptance_prob_statistics(trajectory_stat_list: list, labels: list, fi
     plt.legend()
     plt.show()
 
+# this function would be useful for plotting curves
+def plot_with_error_band(xval:list,y_list_of_list:list,label:str,
+                            std_dev_multiplicative_factor:int=0.5,
+                            alpha_for_plot:float=0.5):
+# for i, data in dict_mcmc_bas_gridsize_3.items():
+#     print(i)
+#     keys = list(data.keys())
+#     for type in keys:
+#         print(type)
+#         print(name_replacement[type])
+#         data[name_replacement[type]] = data.pop(type)
+        
+# name_replacement = {'cl': 'cl-uniform', 'local': 'cl-local-wt1', 'Q-MCMC:pauli_wt_1': 'qu-wt1', 'Q-MCMC:pauli_wt_3': 'qu-wt3', 'local_wt_3': 'cl-local-wt3'}
+    curve_of_mean_value=np.mean(y_list_of_list,axis=0)
+    standard_dev_band=np.std(y_list_of_list,axis=0)
+    plt.plot(xval,curve_of_mean_value,"-",label=label)
+    plt.fill_between(xval,
+                        curve_of_mean_value-standard_dev_band* std_dev_multiplicative_factor,
+                        curve_of_mean_value+standard_dev_band* std_dev_multiplicative_factor,
+                        alpha=alpha_for_plot)
+
+def plot_mcmc_iterations(DATA) :
+    mcmc_types = list(DATA.keys())
+    iter_begin = 100; iter_end = -1
+    dim1 = int(len(mcmc_types)/2)+1; dim2 = 2
+
+    plt.figure(figsize=(40,25))
+    for j in range(1, len(mcmc_types)+1):
+        # print(j)
+        plt.subplot(dim1, dim2, j)
+        plt.plot(DATA[mcmc_types[j-1]].markov_chain[iter_begin: iter_end] )
+        plt.title(mcmc_types[j-1])
+
+        # plt.legend()
+    plt.show()
 ###########################################################################################
 ## BAS Datasets ##
 ###########################################################################################

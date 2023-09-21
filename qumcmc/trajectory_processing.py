@@ -236,3 +236,387 @@ def get_trajectory_statistics(mcmc_chain: MCMCChain, model: Union[IsingEnergyFun
         trajectory_statistics['kldiv'] = np.array(rkl)
 
     return trajectory_statistics
+
+##############################################################################################
+## Class to process MCMCData from multiple experiments ##
+##############################################################################################
+
+class ProcessMCMCData():
+    
+    import os
+    def __init__(self, data: dict, model: Exact_Sampling, savefile_path: str = None, name: str= 'SAMPLINGRESULT'):
+
+        self.data = data
+        self.model = model
+        self.processed_data = {}
+        self.savefile_path = savefile_path
+        self.name = name 
+        
+        self.seeds = list(self.data.keys())
+        self.mcmc_types = list(self.data[1].keys())
+        
+        # os.chdir(self.savefile_path)
+        print('OUTPUT DIRECTORY: ', os.path.join( os.getcwd(), self.savefile_path) )
+    
+    def PROCESS_ALL(self,save_data= True):
+        
+        self.CALCULATE_KL_DIV(save_data= save_data  )
+        self.CALCULATE_MAGNETISATION(save_data= save_data  )
+        self.CALCULATE_MCMC_STATISTICS(save_data= save_data  )
+    
+    def UPDATE_DATA(self, new_data: dict, new_seeds, new_mcmc_types, save_data = True):
+
+        if self.processed_data == {} :
+            raise ValueError(' method ''UPDATE_DATA'' cannot be called on unprocessed data, call "PROCESS_ALL" intially ')
+
+        self.data = new_data
+        self.CALCULATE_KL_DIV(save_data= save_data, allow_reprocessing=True, seeds_new= new_seeds, mcmc_types_new= new_mcmc_types )
+        self.CALCULATE_MAGNETISATION(save_data= save_data, allow_reprocessing=True, seeds_new= new_seeds, mcmc_types_new= new_mcmc_types )
+        self.CALCULATE_MCMC_STATISTICS(save_data= save_data, allow_reprocessing=True, seeds_new= new_seeds, mcmc_types_new= new_mcmc_types )
+        
+        self.seeds = list(self.data.keys())
+        self.mcmc_types = list(self.data[1].keys())
+    
+    def PLOT_KL_DIV(self, save_plot = False, mcmc_types_to_plot = 'all'):
+    
+        ## plotting
+        x=list(range(0,15000+1))
+        plt.figure(figsize=(12,8))
+        if mcmc_types_to_plot == 'all': 
+            mcmc_types_to_plot = self.processed_data['KL-DIV'].keys()
+        for mcmc_type in mcmc_types_to_plot:
+            plot_with_error_band(x, self.processed_data['KL-DIV'][mcmc_type] ,label= mcmc_type)
+    
+        plt.xlabel("iterations ")
+        plt.ylabel("KL divergence")
+        plt.yscale('log')
+        plt.legend()
+
+        if save_plot:
+                os.chdir(self.savefile_path)      
+                figname = self.name + 'KL-DIV.pdf'
+                plt.savefig(figname)
+        
+                os.chdir('../..')        
+        
+        plt.show()
+
+    def CALCULATE_KL_DIV(self, save_data:bool= False, allow_reprocessing= False, seeds_new = None, mcmc_types_new= None  ):
+        
+        ## data processing    
+        if 'KL-DIV' not in self.processed_data:
+            seeds = self.seeds
+            mcmc_types = self.mcmc_types
+            self.processed_data['KL-DIV'] = { mcmc_type: [] for mcmc_type in self.mcmc_types }
+
+        if allow_reprocessing:
+            if seeds_new == None: seeds = self.seeds
+            else: seeds = seeds_new
+            
+            if mcmc_types_new == None: mcmc_types = self.mcmc_types 
+            else: 
+                mcmc_types = mcmc_types_new
+                for mcmc_type in mcmc_types:
+                    self.processed_data['KL-DIV'][mcmc_type] = []
+
+        if 'KL-DIV' not in self.processed_data or allow_reprocessing:
+            for seed in tqdm(seeds):
+                for mcmc_type in mcmc_types:
+          
+                    kldiv = calculate_running_kl_divergence(self.model.boltzmann_pd, self.data[seed][mcmc_type])
+                    self.processed_data['KL-DIV'][mcmc_type].append(kldiv)
+
+            if save_data :
+                os.chdir(self.savefile_path)                
+                with open(self.name + '.pkl','wb') as f:
+                        pickle.dump(self,f)
+                os.chdir('../..')
+
+
+    def PLOT_MAGNETISATION(self, save_plot= False , mcmc_types_to_plot = 'all'):
+    
+        ## plotting
+        fig, ax1 = plt.subplots(figsize=(12,8))
+        left, bottom, width, height = [0.55, 0.2, 0.25, 0.25]
+
+        x=list(range(0,15000))
+        # mcmc_types = self.data[1].keys()
+        if mcmc_types_to_plot == 'all': 
+            mcmc_types_to_plot = self.processed_data['MAGNETISATION'].keys()
+        
+        for mcmc_type in mcmc_types_to_plot:
+            
+            mean_mag_local=np.mean(self.processed_data['MAGNETISATION'][mcmc_type],axis=0)
+            std_local=np.std(self.processed_data['MAGNETISATION'][mcmc_type],axis=0)
+            ax1.plot(x,mean_mag_local,label= mcmc_type)
+            ax1.fill_between(x,mean_mag_local-std_local/2,mean_mag_local+std_local/2,alpha=0.45)
+
+
+        ax1.axhline(self.model.get_observable_expectation(magnetization_of_state), label= 'actual',linestyle='--')
+        ax1.legend()
+        ax1.set_xlabel("Iterations")
+        ax1.set_ylabel("Magnetisation")
+        
+        if save_plot:       
+                os.chdir(self.savefile_path)         
+                figname = self.name + 'MAGNETISATION.pdf'
+                plt.savefig(figname)
+                os.chdir('../..')        
+            
+        plt.show()
+
+    def CALCULATE_MAGNETISATION(self, save_data:bool = False , allow_reprocessing= False, seeds_new = None, mcmc_types_new= None  ):
+        
+        ## data processing
+        if 'MAGNETISATION' not in self.processed_data:
+            seeds = self.seeds
+            mcmc_types = self.mcmc_types
+            self.processed_data['MAGNETISATION'] = { mcmc_type: [] for mcmc_type in mcmc_types }
+            magnetization_model = self.model.get_observable_expectation(magnetization_of_state)
+
+        if allow_reprocessing:
+            if seeds_new == None: seeds = self.seeds
+            else: seeds = seeds_new
+            
+            if mcmc_types_new == None: mcmc_types = self.mcmc_types 
+            else: 
+                mcmc_types = mcmc_types_new
+                for mcmc_type in mcmc_types:
+                    self.processed_data['MAGNETISATION'][mcmc_type] = []
+
+
+        if 'MAGNETISATION' not in self.processed_data or allow_reprocessing:
+        
+            for seed in tqdm(seeds):
+                for mcmc_type in mcmc_types:
+                    mag = calculate_runnning_magnetisation(self.data[seed][mcmc_type], verbose= False)
+                    self.processed_data['MAGNETISATION'][mcmc_type].append(mag)
+
+
+            if save_data :
+                os.chdir(self.savefile_path)
+                
+                with open(self.name + '.pkl','wb') as f:
+                        pickle.dump(self,f)
+                os.chdir('../..') 
+
+    def PLOT_MCMC_STATISTICS(self,  save_plot= True, mcmc_types_to_plot = 'all' , statistic_to_plot:str= 'acceptance_prob'):
+    
+        ## plotting
+        plt.figure(1,figsize=(20,15))
+        
+        if mcmc_types_to_plot == 'all': 
+            mcmc_types_to_plot = self.processed_data['MAGNETISATION'].keys()
+
+        dim1 = int(len(self.data.keys()) / 2); dim2 = 2
+        for seed in tqdm(self.seeds):
+            for mcmc_type in mcmc_types_to_plot:
+                stat_to_plot = self.processed_data['MCMC-STATISTICS'][seed][mcmc_type][statistic_to_plot] 
+                
+                plt.subplot(dim1,dim2,seed)
+
+                if statistic_to_plot == 'acceptance_prob':
+                    plt.hist(np.log10(stat_to_plot),
+                        label= mcmc_type ,alpha= 0.5, 
+                        bins= 50,density=True)
+                    
+                    if seed==9 or seed==10:
+                        plt.xlabel("log(Acceptance Rate)")
+                else : 
+                    plt.hist(stat_to_plot,
+                        label= mcmc_type ,alpha= 0.1, 
+                        bins= 50,density=True)
+                    
+                    if seed==9 or seed==10:
+                        plt.xlabel(statistic_to_plot)
+        
+            plt.legend()
+            
+        if save_plot:
+            os.chdir(self.savefile_path)
+            figname  = self.name + 'ACCEPTANCEPROB.pdf'
+            plt.savefig(figname)
+            os.chdir('../..')
+
+            plt.show()
+        
+    def CALCULATE_MCMC_STATISTICS(self, save_data: bool = False, allow_reprocessing= False, seeds_new = None, mcmc_types_new= None ):
+
+        ## data processing ##        
+        if 'MCMC-STATISTICS' not in self.processed_data:
+            seeds = self.seeds
+            mcmc_types = self.mcmc_types
+            self.processed_data['MCMC-STATISTICS'] = { seed: {} for seed in seeds }
+        
+        if allow_reprocessing :
+            if seeds_new == None: seeds = self.seeds
+            else: 
+                seeds = seeds_new
+                for seed in seeds:
+                    self.processed_data['MCMC-STATISTICS'][seed] = {}
+            
+            if mcmc_types_new == None: mcmc_types = self.mcmc_types 
+            else: mcmc_types = mcmc_types_new
+        
+        if 'MCMC-STATISTICS' not in self.processed_data or allow_reprocessing :
+            
+            for seed in tqdm(seeds, desc= "Processing MCMC Statistics"):
+                for mcmc_type in mcmc_types:
+                    self.processed_data['MCMC-STATISTICS'][seed][mcmc_type] = {}
+                    stat_data = get_trajectory_statistics(self.data[seed][mcmc_type], self.model)
+                    for stat in stat_data.keys():
+                        self.processed_data['MCMC-STATISTICS'][seed][mcmc_type][stat] = stat_data[stat]
+            
+            if save_data:
+                os.chdir(self.savefile_path)
+
+                with open(self.name + '.pkl', 'wb') as f:
+                    pickle.dump(self, f)
+                
+                os.chdir('../..')
+
+
+## HELPER FUNCTIONS ###
+def PLOT_MCMC_STATISTICS(self,  save_plot= False, mcmc_types_to_plot = 'all' , statistic_to_plot:str= 'acceptance_prob', kwrargs_hamming = {'total', 'accepted'}):
+    
+        ## plotting
+        plt.figure(1,figsize=(20,15))
+        
+        if mcmc_types_to_plot == 'all': 
+            mcmc_types_to_plot = list(self.processed_data['MAGNETISATION'].keys())
+
+        dim1 = int(len(self.data.keys()) / 2); dim2 = 2
+        
+        
+        if statistic_to_plot == 'acceptance_prob':
+            for seed in tqdm(self.seeds):    
+                for mcmc_type in mcmc_types_to_plot:
+                    stat_to_plot = self.processed_data['MCMC-STATISTICS'][seed][mcmc_type][statistic_to_plot] 
+                    
+                    plt.subplot(dim1,dim2,seed)
+
+                    
+                    plt.hist(np.log10(stat_to_plot),
+                        label= mcmc_type ,alpha= 0.5, 
+                        bins= 50,density=True)
+                    
+                    if seed==9 or seed==10:
+                        plt.xlabel("log(Acceptance Rate)")
+                
+        elif statistic_to_plot == 'hamming':
+
+            for seed in tqdm(self.seeds):
+                
+                ticks = list(self.processed_data['MCMC-STATISTICS'][seed][mcmc_types_to_plot[0]][statistic_to_plot].keys())
+                mcmc_labels = [mcmc_type for mcmc_type in mcmc_types_to_plot]
+            
+                plt.subplot(dim1,dim2,seed)
+
+                width = 0.10  
+                x = np.arange(len(ticks))
+
+                if 'total' in kwrargs_hamming:        
+                    multiplier = 0            
+                    for mcmc_type in mcmc_labels :
+                        offset = width * multiplier
+                        values_1 = [self.processed_data['MCMC-STATISTICS'][seed][mcmc_type][statistic_to_plot][key]['total'] for key in ticks ]
+                        rects = plt.bar(x + offset, values_1, width, label= mcmc_type, alpha = 0.5, edgecolor = 'k')
+                        # plt.bar_label(rects, padding=3)
+                        multiplier += 1
+                
+                if 'accepted' in kwrargs_hamming:
+                    multiplier = 0            
+                    for mcmc_type in mcmc_labels :
+                        offset = width * multiplier
+                        values_2 = [self.processed_data['MCMC-STATISTICS'][seed][mcmc_type][statistic_to_plot][key]['accepted'] for key in ticks ]
+                        if 'total' in kwrargs_hamming: rects = plt.bar(x + offset, values_2, width, alpha = 1.0, fill= False, edgecolor = 'k', hatch= '///')
+                        else : rects = plt.bar(x + offset, values_2, width, alpha = 0.5, edgecolor = 'k', label= mcmc_type)
+                        # plt.bar_label(rects, padding=3)
+                        multiplier += 1
+        
+         
+                plt.xticks(x + width, ticks)    
+                if seed==9 or seed==10:
+                    plt.xlabel(statistic_to_plot)
+                
+                lgnd = plt.legend(loc='upper left', ncols= len(mcmc_labels))
+
+                # print(lgnd.get_han())
+        else :
+            for seed in tqdm(self.seeds):        
+                    plt.subplot(dim1,dim2,seed)
+
+                    plt.hist(stat_to_plot,
+                        label= mcmc_type ,alpha= 0.1, 
+                        bins= 50,density=True)
+                    
+                    if seed==9 or seed==10:
+                        plt.xlabel(statistic_to_plot)
+            
+            plt.legend(loc='upper left', ncols=3)
+            
+        
+            
+        if save_plot:
+            os.chdir(self.savefile_path)
+            figname  = self.name + '_' + statistic_to_plot
+            plt.savefig(figname)
+            os.chdir('../..')
+
+        plt.show()
+            
+def PLOT_MAGNETISATION(self, save_plot= False , mcmc_types_to_plot = 'all'):
+    
+        ## plotting
+        fig, ax1 = plt.subplots(figsize=(26,16))
+        left, bottom, width, height = [0.55, 0.2, 0.25, 0.25]
+
+        x=list(range(0,15000))
+        # mcmc_types = self.data[1].keys()
+        if mcmc_types_to_plot == 'all': 
+            mcmc_types_to_plot = self.processed_data['MAGNETISATION'].keys()
+        
+        for mcmc_type in mcmc_types_to_plot:
+            
+            mean_mag_local=np.mean(self.processed_data['MAGNETISATION'][mcmc_type],axis=0)
+            std_local=np.std(self.processed_data['MAGNETISATION'][mcmc_type],axis=0)
+            ax1.plot(x,mean_mag_local,label= mcmc_type)
+            ax1.fill_between(x,mean_mag_local-std_local/2,mean_mag_local+std_local/2,alpha=0.45)
+
+
+        ax1.axhline(self.model.get_observable_expectation(magnetization_of_state), label= 'actual',linestyle='--')
+        ax1.legend()
+        ax1.set_xlabel("Iterations")
+        ax1.set_ylabel("Magnetisation")
+        
+        if save_plot:       
+                os.chdir(self.savefile_path)         
+                figname = self.name + 'MAGNETISATION.pdf'
+                plt.savefig(figname)
+                os.chdir('../..')        
+            
+        plt.show()
+
+def PLOT_KL_DIV(self, save_plot = False, mcmc_types_to_plot = 'all'):
+    
+        ## plotting
+        x=list(range(0,15000+1))
+        plt.figure(figsize=(12,8))
+        if mcmc_types_to_plot == 'all': 
+            mcmc_types_to_plot = self.processed_data['KL-DIV'].keys()
+        for mcmc_type in mcmc_types_to_plot:
+            plot_with_error_band(x, self.processed_data['KL-DIV'][mcmc_type] ,label= mcmc_type)
+    
+        plt.xlabel("iterations ")
+        plt.ylabel("KL divergence")
+        plt.yscale('log')
+        plt.legend()
+
+        if save_plot:
+                os.chdir(self.savefile_path)      
+                figname = self.name + 'KL-DIV.pdf'
+                plt.savefig(figname)
+        
+                os.chdir('../..')        
+        
+        plt.show()
