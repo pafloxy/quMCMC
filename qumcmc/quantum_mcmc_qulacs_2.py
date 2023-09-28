@@ -76,32 +76,65 @@ def fn_qckt_problem_half(J:np.array,h, num_spins:int,
     return qc_problem_hamiltonian_half
 
 def fn_qckt_X_mixer(num_spins:int, gamma:float, delta_time:float, 
-                    pauli_weight_single_term_mixer:int=1):
+                    mixer_type = ['random', 1],
+                    ):
 
+    '''
+    mixer_type = ['random', pauli wt. of mixer] -> All possible mixers of fixed pauli weight will be used.
+                 ['custom', [SET OF MIXERS] ] -> All mixers specified in the [SET OF MIXERS] is used
+    '''
     qc_evolution_under_mixer=QuantumCircuit(num_spins)
-    #
+    
     qubit_indices=list(range(0,num_spins))
-    if pauli_weight_single_term_mixer==1:
-        target_qubits_list=list(range(num_spins-1,-1,-1))
-        angle=-1*2*gamma*delta_time# additional -1 factor since in qulacs convention is +1 in the rotation operator
-        for j in range(0,num_spins):
-            #qc_evolution_under_mixer.add_RX_gate(index=target_qubits_list[j],angle=angle)
-            qc_evolution_under_mixer.add_RX_gate(index=target_qubits_list[j],
-                                                    angle=angle)
+    
+    # if pauli_weight_single_term_mixer==1:
+    #     target_qubits_list=list(range(num_spins-1,-1,-1))
+    #     angle=-1*2*gamma*delta_time# additional -1 factor since in qulacs convention is +1 in the rotation operator
+    #     for j in range(0,num_spins):
+    #         #qc_evolution_under_mixer.add_RX_gate(index=target_qubits_list[j],angle=angle)
+    #         qc_evolution_under_mixer.add_RX_gate(index=target_qubits_list[j],
+    #                                                 angle=angle)
 
-    elif pauli_weight_single_term_mixer!=1:
-        pauli_id_single_term_in_mixer=[1]*pauli_weight_single_term_mixer
-        r=pauli_weight_single_term_mixer #len(pauli_id_single_term_in_mixer)
-        all_possible_qubit_combinations=list(combinations(qubit_indices,r))# in ascending order
-        # create the circuit
-        for i in range(0,len(all_possible_qubit_combinations)):
-            
-            target_qubits_list=list(all_possible_qubit_combinations[i])
-            angle= -1*2*gamma* delta_time # additional -1 factor since in qulacs convention is +1 in the rotation operator
-            qc_evolution_under_mixer.add_multi_Pauli_rotation_gate(index_list=target_qubits_list,
-                                                            pauli_ids=pauli_id_single_term_in_mixer,
-                                                            angle=angle)
+    # elif pauli_weight_single_term_mixer!=1:
+    
+    if mixer_type[0] == 'custom':
+        possible_qubit_combinations = mixer_type[1]
+        
+
+    elif mixer_type[0] == 'random':
+         #len(pauli_id_single_term_in_mixer)
+        possible_qubit_combinations= [list(i) for i in combinations(qubit_indices, mixer_type[1]) ]  # in ascending order
+
+    # create the circuit
+    for i in range(0,len(possible_qubit_combinations)):
+        
+        target_qubits_list= possible_qubit_combinations[i]
+        pauli_id_single_term_in_mixer = [1]*len(target_qubits_list)
+        angle= -1*2*gamma* delta_time # additional -1 factor since in qulacs convention is +1 in the rotation operator
+        
+        qc_evolution_under_mixer.add_multi_Pauli_rotation_gate(index_list=target_qubits_list,
+                                                        pauli_ids=pauli_id_single_term_in_mixer,
+                                                        angle=angle)
+    
     return qc_evolution_under_mixer
+
+# def fn_qckt_X_mixer_custom(num_spins:int, gamma:float, delta_time:float, 
+#                     mixers: list): ##TODO
+    
+#     """ 
+#     mixers: a list of mixers, where each mixer should be Pauli Operator described 
+#             as the string sequence in the Class PauliOperator.
+#             For eg.: 'X 0 Y 1 X 2' 
+#     """
+
+#     qc_evolution_under_mixer=QuantumCircuit(num_spins)
+#     #
+#     qubit_indices=list(range(0,num_spins))
+
+#     for mixer in mixers :
+#         pass
+    
+#     return qc_evolution_under_mixer
 
 ####
 def trotter(num_spins:int, qckt_1:QuantumCircuit, 
@@ -120,7 +153,7 @@ def run_qmcmc_quantum_ckt(
         model: IsingEnergyFunction,
         alpha:float,num_spins:int,
         gamma_range=(0.2,0.6),
-        pauli_weight_of_terms_in_Xmixer:int=1,delta_time=0.8) -> str:
+        mixer_type = ['random', 1],delta_time=0.8) -> str:
     
     h=model.get_h
     J=model.get_J
@@ -136,7 +169,7 @@ def run_qmcmc_quantum_ckt(
     qc_problem_half=fn_qckt_problem_half(J=J,h=h,num_spins=num_spins,
                                 gamma=gamma, alpha=alpha, delta_time=delta_time)
     qc_mixer=fn_qckt_X_mixer(num_spins=num_spins,gamma=gamma,delta_time=delta_time,
-                            pauli_weight_single_term_mixer=pauli_weight_of_terms_in_Xmixer)
+                            mixer_type= mixer_type)
     qc_time_evol=trotter(num_spins=num_spins,qckt_1=qc_problem_half,
                             qckt_2=qc_mixer,
                             num_trotter_steps=num_trotter_steps)
@@ -158,7 +191,7 @@ def quantum_enhanced_mcmc_2(
         temperature:float=1,
         gamma_range=(0.2,0.6),
         delta_time=0.8, 
-        mixer: dict = {'fixed': 1 },
+        mixer= [ [['random', 1]], []],
         # pauli_weight_x_mixer:int=1,
         verbose:bool=False,
         name:str = "Q-MCMC"):
@@ -170,12 +203,17 @@ def quantum_enhanced_mcmc_2(
     return_last_n_states:
     return_both:
     temp:
-    mixer: dict 
-        Specifies the type fo mixer configuration used during MCMC
-        {'fixed': n} : Fixed mixer for each MCMC step; mixer wt = n      
-        {'alternate': {wt1:p1, wt2:p2, .. }} : Alternating mixers for each MCMC step; 
-                                                1. Mixers are picked according to the input dictionary, mixer of wt1 with probabiity p1 and so on.  
-                                                2. If just a set is passed, then they are assumed to have uniform probability 
+    mixer: list
+        Specifies the type fo mixer configurations and their corresponding probability used during MCMC
+
+        [ [mixer_type1 , mixer_type2 , mixer_type3, . .], [p1, p2, p3, . .] ] }
+        
+
+        'mixer_type':
+            ['random', pauli wt. of mixer] -> All possible mixers of fixed pauli weight will be used.
+            ['custom', [SET OF MIXERS] ] -> All mixers specified in the [SET OF MIXERS] is used
+        
+
     RETURNS:
     -------
     Last 'return_last_n_states' elements of states so collected (default value=500). one can then deduce the distribution from it!
@@ -191,58 +229,60 @@ def quantum_enhanced_mcmc_2(
     energy_s = model.get_energy(current_state.bitstring)
     if verbose: print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
-    mcmc_chain = MCMCChain([current_state], name= name)
+    mcmc_chain = MCMCChain([current_state], name= name +': '+str(mixer))
 
-    if 'fixed' in mixer.keys() :
-        for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
-            # get s_prime
-            s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
-                                            model=model,
-                                            alpha=model.alpha, num_spins=num_spins,
-                                            gamma_range=gamma_range,
-                                            pauli_weight_of_terms_in_Xmixer= mixer['fixed'],
-                                            delta_time=delta_time
-                                            )
-            if len(s_prime) == model.num_spins :
-                # accept/reject s_prime
-                energy_sprime = model.get_energy(s_prime)
-                accepted = test_accept(
-                    energy_s, energy_sprime, temperature=temperature
-                )
-                mcmc_chain.add_state(MCMCState(s_prime, accepted))
-                if accepted:
-                    current_state = mcmc_chain.current_state
-                    energy_s = model.get_energy(current_state.bitstring)
-            else: pass    
+    # if mixer[0] == 'fixed'  :
+    #     for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
+    #         # get s_prime
+    #         s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
+    #                                         model=model,
+    #                                         alpha=model.alpha, num_spins=num_spins,
+    #                                         gamma_range=gamma_range,
+    #                                         mixer_type= mixer[1] ,
+    #                                         delta_time=delta_time
+    #                                         )
+    #         if len(s_prime) == model.num_spins :
+    #             # accept/reject s_prime
+    #             energy_sprime = model.get_energy(s_prime)
+    #             accepted = test_accept(
+    #                 energy_s, energy_sprime, temperature=temperature
+    #             )
+    #             mcmc_chain.add_state(MCMCState(s_prime, accepted))
+    #             if accepted:
+    #                 current_state = mcmc_chain.current_state
+    #                 energy_s = model.get_energy(current_state.bitstring)
+    #         else: pass    
 
 
-    elif 'alternate' in mixer.keys() :
-        for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
-            # get s_prime
-            if isinstance(mixer['alternate'], dict):
-                mixer_wt = np.random.choice(list(mixer['alternate'].keys()), p= list(mixer['alternate'].values()) )
-            if isinstance(mixer['alternate'], set):
-                mixer_wt = np.random.choice(list(mixer['alternate'].keys()))
 
-            s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
-                                            model=model,
-                                            alpha=model.alpha, num_spins=num_spins,
-                                            gamma_range=gamma_range,
-                                            pauli_weight_of_terms_in_Xmixer= mixer_wt ,
-                                            delta_time=delta_time
-                                            )
-            if len(s_prime) == model.num_spins :
-                # accept/reject s_prime
-                energy_sprime = model.get_energy(s_prime)
-                accepted = test_accept(
-                    energy_s, energy_sprime, temperature=temperature
-                )
-                mcmc_chain.add_state(MCMCState(s_prime, accepted))
-                if accepted:
-                    current_state = mcmc_chain.current_state
-                    energy_s = model.get_energy(current_state.bitstring)
-            else: pass    
+    for _ in tqdm(range(0, n_hops), desc='runnning quantum MCMC steps . ..', disable= not verbose ):
+        # get s_prime
+        if len(mixer[0]) == 1 :
+            mixer_type = mixer[0][0]
+        else:
+            mixer_type_index = np.random.choice(range(len(mixer[0])), p= mixer[1] )
+            mixer_type = mixer[0][mixer_type_index]  
         
+
+        s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
+                                        model = model,
+                                        alpha = model.alpha, num_spins = num_spins,
+                                        gamma_range = gamma_range,
+                                        mixer_type = mixer_type ,
+                                        delta_time = delta_time
+                                        )
+        if len(s_prime) == model.num_spins :
+            # accept/reject s_prime
+            energy_sprime = model.get_energy(s_prime)
+            accepted = test_accept(
+                energy_s, energy_sprime, temperature=temperature
+            )
+            mcmc_chain.add_state(MCMCState(s_prime, accepted))
+            if accepted:
+                current_state = mcmc_chain.current_state
+                energy_s = model.get_energy(current_state.bitstring)
+        else: pass    
+    
         
     return mcmc_chain
 
