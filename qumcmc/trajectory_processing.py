@@ -479,7 +479,7 @@ class ProcessMCMCData():
 
 ## HELPER FUNCTIONS ###
 
-def PLOT_MCMC_STATISTICS(self: ProcessMCMCData,  save_plot= False, mcmc_types_to_plot = 'all' , statistic_to_plot:str= 'acceptance_prob', kwrargs_hamming = {'total', 'accepted'}, kwargs_acceptance_prob= 'stepfilled'):
+def PLOT_MCMC_STATISTICS(self,  save_plot= False, mcmc_types_to_plot = 'all' , statistic_to_plot:str= 'acceptance_prob', kwargs_hamming = {'type': ['total', 'accepted'], 'width': 0.13}, kwargs_acceptance_prob= {'histtype':'stepfilled', 'stacked': True, 'density': True}):
     
         ## plotting
         plt.figure(1,figsize=(20,15))
@@ -494,19 +494,39 @@ def PLOT_MCMC_STATISTICS(self: ProcessMCMCData,  save_plot= False, mcmc_types_to
             mcmc_labels = [mcmc_type for mcmc_type in mcmc_types_to_plot]
             for seed in tqdm(self.seeds):    
                 
-                    stat_to_plot = [ np.log10( self.processed_data['MCMC-STATISTICS'][seed][mcmc_type][statistic_to_plot] ) for mcmc_type in mcmc_types_to_plot]
+                    # stat_to_plot = [ np.log10( self.processed_data['MCMC-STATISTICS'][seed][mcmc_type][statistic_to_plot] ) for mcmc_type in mcmc_types_to_plot]
                     
                     plt.subplot(dim1,dim2,seed)
 
+                    # for mcmc_label in mcmc_labels:
+                    #     stat_to_plot = np.log10( self.processed_data['MCMC-STATISTICS'][seed][mcmc_label][statistic_to_plot] )
+                    #     x, bins, p = plt.hist(stat_to_plot,
+                    #         label= mcmc_label ,alpha= 0.5, 
+                    #         bins= np.linspace(-5,0,50), density= kwargs_acceptance_prob['density'],  histtype= kwargs_acceptance_prob['histtype'])
+                    #     # print(sum(x))
+                    #     # for item in p:
+                    #             # item.set_height(item.get_height()/sum(x))
+                    #     # print(p)
                     
-                    plt.hist(stat_to_plot,
-                        label= mcmc_labels ,alpha= 0.5, 
-                        bins= 50,density=True, stacked= True, histtype= kwargs_acceptance_prob, edgecolor = 'k')
-                    
+                    max_ht = 0
+                    for mcmc_label in mcmc_labels:
+                        stat_to_plot = np.log10( self.processed_data['MCMC-STATISTICS'][seed][mcmc_label][statistic_to_plot] )
+                        heights, bins = np.histogram(stat_to_plot, bins= np.linspace(-5,0,75) , density= True,)
+                        heights = heights/sum(heights)
+                        bin_centers = 0.5*(bins[1:] + bins[:-1])
+                        bin_widths = np.diff(bins)
+                        
+                        plt.bar(bin_centers, heights, width=bin_widths, alpha=0.5, label = mcmc_label)    
+
+                        if max(heights) > max_ht :
+                             max_ht = max(heights)
+
                     if seed==9 or seed==10:
                         plt.xlabel("log(Acceptance Rate)")
                     
-                    lgnd = plt.legend(loc='upper left', ncols= len(mcmc_labels))
+                    lgnd = plt.legend(loc='upper left', ncols= 4)
+            
+                    plt.ylim((0, max_ht + 0.05 ))        
             plt.show()        
                 
         elif statistic_to_plot == 'hamming':
@@ -518,10 +538,10 @@ def PLOT_MCMC_STATISTICS(self: ProcessMCMCData,  save_plot= False, mcmc_types_to
             
                 plt.subplot(dim1,dim2,seed)
 
-                width = 0.10  
+                width = kwargs_hamming['width']  
                 x = np.arange(len(ticks))
 
-                if 'total' in kwrargs_hamming:        
+                if 'total' in kwargs_hamming['type']:        
                     multiplier = 0            
                     for mcmc_type in mcmc_labels :
                         offset = width * multiplier
@@ -530,12 +550,12 @@ def PLOT_MCMC_STATISTICS(self: ProcessMCMCData,  save_plot= False, mcmc_types_to
                         # plt.bar_label(rects, padding=3)
                         multiplier += 1
                 
-                if 'accepted' in kwrargs_hamming:
+                if 'accepted' in kwargs_hamming['type']:
                     multiplier = 0            
                     for mcmc_type in mcmc_labels :
                         offset = width * multiplier
                         values_2 = [self.processed_data['MCMC-STATISTICS'][seed][mcmc_type][statistic_to_plot][key]['accepted'] for key in ticks ]
-                        if 'total' in kwrargs_hamming: rects = plt.bar(x + offset, values_2, width, alpha = 1.0, fill= False, edgecolor = 'k', hatch= '///')
+                        if 'total' in kwargs_hamming['type']: rects = plt.bar(x + offset, values_2, width, alpha = 1.0, fill= False, edgecolor = 'k', hatch= '///')
                         else : rects = plt.bar(x + offset, values_2, width, alpha = 0.5, edgecolor = 'k', label= mcmc_type)
                         # plt.bar_label(rects, padding=3)
                         multiplier += 1
@@ -565,13 +585,13 @@ def PLOT_MCMC_STATISTICS(self: ProcessMCMCData,  save_plot= False, mcmc_types_to
             
         if save_plot:
             os.chdir(self.savefile_path)
-            figname  = self.name + '_' + statistic_to_plot + '.pdf'
+            figname  = self.name + '_' + statistic_to_plot
             plt.savefig(figname)
             os.chdir('../..')
 
-
-
-def PLOT_MAGNETISATION(self: ProcessMCMCData, save_plot= False , mcmc_types_to_plot = 'all'):
+        
+            
+def PLOT_MAGNETISATION(self, save_plot= False , mcmc_types_to_plot = 'all'):
     
         ## plotting
         fig, ax1 = plt.subplots(figsize=(26,16))
@@ -603,7 +623,7 @@ def PLOT_MAGNETISATION(self: ProcessMCMCData, save_plot= False , mcmc_types_to_p
             
         plt.show()
 
-def PLOT_KL_DIV(self: ProcessMCMCData, save_plot = False, mcmc_types_to_plot = 'all'):
+def PLOT_KL_DIV(self, save_plot = False, mcmc_types_to_plot = 'all'):
     
         ## plotting
         x=list(range(0,15000+1))

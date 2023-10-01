@@ -14,7 +14,7 @@ import random
 from .basic_utils import *
 from .energy_models import IsingEnergyFunction, Exact_Sampling
 from .classical_mcmc_routines import *
-from .quantum_mcmc_routines_qulacs import *     #for qulacs Simulator backend
+from .quantum_mcmc_qulacs_2 import *     #for qulacs Simulator backend
 # from .quantum_mcmc_routines_qulacs import quantum_enhanced_mcmc   #for qiskit Aer's Simulator backend 
 from .trajectory_processing import *
 
@@ -78,17 +78,19 @@ class cd_training():
     model: initial model = (J init, h init) at some temp T
     beta: 1/Temperature
     data_dist: empirical data which we want to learn!
+    name: name of the training instance 
     
     '''
 
-    def __init__(self, model: IsingEnergyFunction, beta:float ,data_dist: DiscreteProbabilityDistribution) -> None:
+    def __init__(self, model: IsingEnergyFunction, beta:float ,data_dist: DiscreteProbabilityDistribution, name:str = 'train' ) -> None:
         self.model = deepcopy(model)
         self.model_beta = beta
         self.data_distribution = data_dist
         self.training_history = {}
         self.kl_div = []
         self.list_pair_of_indices=[[i,j] for i in range(1,self.model.num_spins) for j in range(i,self.model.num_spins) if j!=i]
-        
+        self.name = name
+         
 
     def cd_J(self, index, mcmc_chain: MCMCChain):
 
@@ -109,32 +111,38 @@ class cd_training():
     # @setattr
     # def data_distribution()
     
-    def _train_on_mcmc_chain(self, lr:float= 0.01, 
-    method = 'quantum-enhanced', 
+    def _train_on_mcmc_chain(self, mcmc_settings, 
+    lr:float= 0.01, 
     iterations: int = 100, # rename this iterations to something else ('iterations' is only relevant while update_strategy == 'random', ignore otherwise !)
     num_random_Jij: int=10,
     mcmc_steps:int =1000,
-    update_strategy:str = 'all' ):# we will try to increase mcmc steps. 
+    update_strategy:str = 'all',
+      ):# we will try to increase mcmc steps. 
+        method = mcmc_settings['mcmc_type']  ; mixer = mcmc_settings['mixer']
 
-        random.seed(random.random()) ## add seed to random ##TODO
+        # random.seed(random.random()) ## add seed to random ##TODO
         initialise_chain = self.data_distribution.get_sample(1)[0] ##randomly select a state from the data distribution
 
         if method == 'quantum-enhanced' :
-            self.mcmc_chain = quantum_enhanced_mcmc(
-            n_hops=mcmc_steps,
-            model=self.model,
-            initial_state= initialise_chain,
-            temperature=1/self.model_beta,
-            verbose= False
-            )
-        elif method == 'classical-uniform' : 
+            self.mcmc_chain = quantum_enhanced_mcmc_2(
+                                n_hops=mcmc_steps,
+                                name= method, 
+                                model=self.model,
+                                initial_state= initialise_chain,
+                                temperature=1/self.model_beta,
+                                mixer = mixer,
+                                verbose= False
+                                )
+        elif method == 'classical' : 
             self.mcmc_chain = classical_mcmc(
-            n_hops=mcmc_steps,
-            model=self.model,
-            initial_state= initialise_chain,
-            temperature=1/self.model_beta,
-            verbose= False
-            )
+                                n_hops=mcmc_steps,
+                                name= method,
+                                model=self.model,
+                                initial_state= initialise_chain,
+                                temperature=1/self.model_beta,
+                                proposition_method= mixer,
+                                verbose= False
+                                )
         
         if isinstance(update_strategy, str) and update_strategy == 'random' :     ## random update strategy ##
             
@@ -180,22 +188,18 @@ class cd_training():
                 self.model._update_h(updated_param_h, i)
 
 
-
-
-
-
-    def train(self, lr:float= 0.01, method = 'quantum-enhanced', 
+    def train(self, lr:float= 0.01, mcmc_settings = {'mcmc_type': 'quantum-enhanced', 'mixer': [[['random', 1]  ], []  ]},
     epochs:int = 10, update_strategy = 'all', iterations: int = 100, num_random_Jij:int=5,
     mcmc_steps:int = 500, show_kldiv:bool = True ):
 
         ## random update strategy ##
         # kl_div = []
         iterator = tqdm(range(epochs), desc= 'training epochs')
-        iterator.set_postfix({'method': method})
+        iterator.set_postfix({'mcmc_type': mcmc_settings['mcmc_type'] })
         for epoch in iterator:
 
-            self._train_on_mcmc_chain(lr= lr , 
-            method = method, iterations= iterations, num_random_Jij=num_random_Jij,
+            self._train_on_mcmc_chain( mcmc_settings= mcmc_settings  , lr= lr ,
+            iterations= iterations, num_random_Jij=num_random_Jij,
             mcmc_steps= mcmc_steps, update_strategy= update_strategy )
 
             if show_kldiv:
@@ -205,7 +209,7 @@ class cd_training():
                 exact_sampled_model = Exact_Sampling(self.model, self.model_beta)
                 self.kl_div.append(kl_divergence(  self.data_distribution, exact_sampled_model.boltzmann_pd  ))
                 
-                iterator.set_postfix( { 'method ': method, 'kl div ' : self.kl_div[-1] })
+                iterator.set_postfix( { 'mcmc_type': mcmc_settings['mcmc_type'], 'kl div ' : self.kl_div[-1] })
         
         ## update training data ##
         # self.kl_div += kl_div

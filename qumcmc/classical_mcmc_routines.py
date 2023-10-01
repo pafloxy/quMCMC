@@ -49,8 +49,9 @@ def classical_mcmc(
     initial_state: Optional[str] = None,
     temperature: float = 1.,
     verbose:bool= False,
-    method:str= 'uniform',
-    num_flips:int = 1
+    proposition_method= [  [['uniform']], [] ],
+    name = 'cl-mcmc'
+    # num_flips:int = 1
 ):
     """
     ARGS:
@@ -59,8 +60,10 @@ def classical_mcmc(
     model: 
     initial_state:
     temperature:
-    method : Choose between proposition strategy -> 'uniform' / 'local'
-    num_flips : no. of local flips, if "method == local" 
+    methods : Choose proposition strategy -> 
+            [ [ method1, method2, method3 ] , [p1, p2, p3] ] ; i.e method1 is opted with probability p1 and so on. 
+
+            method ->  ['uniform'] / ['local', num-flips]
     
     RETURNS:
     --------
@@ -69,7 +72,7 @@ def classical_mcmc(
     """
     num_spins = model.num_spins
 
-    assert isinstance(method, str); assert method in {'uniform', 'local'},  ("Unkown method specified, choose betwen ('uniform', 'local') ")
+    # assert isinstance(method, str); assert method in {'uniform', 'local'},  ("Unkown method specified, choose betwen ('uniform', 'local') ")
 
     if initial_state is None : 
         initial_state = MCMCState(get_random_state(num_spins), accepted=True)
@@ -80,11 +83,19 @@ def classical_mcmc(
     energy_s = model.get_energy(current_state.bitstring)
     if verbose : print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
-    mcmc_chain = MCMCChain([current_state])
+    mcmc_chain = MCMCChain([current_state], name= name )
 
 
     for _ in tqdm(range(0, n_hops), desc= 'running MCMC steps ...', disable= not verbose):
         # get sprime
+        if len(proposition_method[0]) == 1 : 
+            method = proposition_method[0][0][0]; 
+            if method != 'uniform' : num_flips = proposition_method[0][0][1]
+        else : 
+            p_i = np.random.choice(range(len(proposition_method[0])), p = proposition_method[1])
+            method = proposition_method[0][p_i][0] 
+            if method != 'uniform' : num_flips = proposition_method[0][p_i][1]
+
         if method == 'uniform' :
             s_prime = get_random_state(num_spins)
         elif method == 'local' :
