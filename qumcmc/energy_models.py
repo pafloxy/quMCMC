@@ -68,7 +68,10 @@ class IsingEnergyFunction:
         # sns.set()
         if plot:
             plt.figure(figsize=(16,10))
-            sns.heatmap(self.J, square= True, annot= False, cbar= True)
+            to_plot = self.J
+            for i in range(self.num_spins):
+                to_plot[i][i] = self.h[i]
+            sns.heatmap(to_plot, square= True, annot= False, cbar= True)
             
     # def get_hamiltonian
     def get_hamiltonian(self):

@@ -12,11 +12,12 @@ import random
 
 # import  
 from .basic_utils import *
-from .energy_models import IsingEnergyFunction, Exact_Sampling
+from .prob_dist import DiscreteProbabilityDistribution, kl_divergence, vectoried_KL
+from .energy_models import IsingEnergyFunction, Exact_Sampling, random_ising_model
 from .classical_mcmc_routines import *
 from .quantum_mcmc_qulacs_2 import *     #for qulacs Simulator backend
 # from .quantum_mcmc_routines_qulacs import quantum_enhanced_mcmc   #for qiskit Aer's Simulator backend 
-from .trajectory_processing import *
+from .trajectory_processing import calculate_running_kl_divergence, calculate_runnning_magnetisation, get_trajectory_statistics
 
 from qulacs import QuantumState
 from qulacs_core import DensityMatrix
@@ -86,7 +87,7 @@ class cd_training():
         self.model = deepcopy(model)
         self.model_beta = beta
         self.data_distribution = data_dist
-        self.training_history = {}
+        self.training_history = { 'specifications' : [], 'kl_div': [], 'max-min-gradient': []}
         self.kl_div = []
         self.list_pair_of_indices=[[i,j] for i in range(1,self.model.num_spins) for j in range(i,self.model.num_spins) if j!=i]
         self.name = name
@@ -112,12 +113,13 @@ class cd_training():
     # def data_distribution()
     
     def _train_on_mcmc_chain(self, mcmc_settings, 
-    lr:float= 0.01, 
-    iterations: int = 100, # rename this iterations to something else ('iterations' is only relevant while update_strategy == 'random', ignore otherwise !)
-    num_random_Jij: int=10,
-    mcmc_steps:int =1000,
-    update_strategy:str = 'all',
-      ):# we will try to increase mcmc steps. 
+            lr:float= 0.01, 
+            mcmc_steps:int =1000,
+            update_strategy = [ 'all', [] ],
+            save_gradient_info = False  , 
+            ):# we will try to increase mcmc steps. 
+        
+        
         method = mcmc_settings['mcmc_type']  ; mixer = mcmc_settings['mixer']
 
         # random.seed(random.random()) ## add seed to random ##TODO
@@ -144,84 +146,121 @@ class cd_training():
                                 verbose= False
                                 )
         
-        if isinstance(update_strategy, str) and update_strategy == 'random' :     ## random update strategy ##
+        if update_strategy[0] == 'random' :     ## random update strategy ##
             
             ## just realised that even this is not a good thing! 
-            assert iterations<=self.model.num_spins, f"iterations should be <= num_spins (which is= {self.model.num_spins}) "
-            assert num_random_Jij<=len(self.list_pair_of_indices), f"num_random_Jij should be <=len(self.list_pair_of_indices) (which is= {len(self.list_pair_of_indices)})"
             
-            list_random_indices=random.sample(range(0,self.model.num_spins), iterations)
+            assert update_strategy[1]['num_random_bias']<=self.model.num_spins, f"update_strategy[1]['num_random_bias'] should be <= num_spins (which is= {self.model.num_spins}) "
+            assert update_strategy[1]['num_random_interactions']<=len(self.list_pair_of_indices), f"update_strategy[1]['num_random_interactions'] should be <=len(self.list_pair_of_indices) (which is= {len(self.list_pair_of_indices)})"
+            
+            list_random_indices=random.sample(range(0,self.model.num_spins), update_strategy[1]['num_random_bias'])
             #list_pair_of_indices=[[i,j] for i in range(1,self.model.num_spins) for j in range(i,self.model.num_spins) if j!=i]
-            #list_pair_of_different_indices=random.sample(self.list_pair_of_indices,k=num_random_Jij)
+            #list_pair_of_different_indices=random.sample(self.list_pair_of_indices,k=update_strategy[1]['num_random_interactions'])
 
             list_pair_of_different_indices=[[list_random_indices[j],
                         random.choice(list(range(0,list_random_indices[j]))+list(range(list_random_indices[j]+1,self.model.num_spins)))] 
-                        for j in range(0,iterations)]
+                        for j in range(0,update_strategy[1]['num_random_bias'])]
             
-            # ## Update J
+            
+            ## Update J
             for k in range(len(list_pair_of_different_indices)):
+                
                 indices_J=list_pair_of_different_indices[k]
-                updated_param_j=self.model.J[indices_J[0],indices_J[1]] - lr * self.cd_J(indices_J, self.mcmc_chain)
+                calculate_cd_J = self.cd_J(indices_J, self.mcmc_chain)
+                updated_param_j=self.model.J[indices_J[0],indices_J[1]] - lr * calculate_cd_J
                 self.model._update_J(updated_param_j, indices_J)
 
-            for k in range(iterations):
-                #indices_J=list_pair_of_different_indices[k]
-                #updated_param_j = model.J[indices_J[0],indices_J[1]] - lr * self.cd_J(indices_J, self.mcmc_chain)
-
-                # update h
-                index_h=list_random_indices[k]
-                updated_param_h=self.model.h[index_h] - lr*self.cd_h(index_h,self.mcmc_chain)
-
-                #self.model._update_J(updated_param_j, indices_J)
-                self.model._update_h(updated_param_h, index_h)
-        
-        if isinstance(update_strategy, str) and update_strategy == 'all' :     
-
-            for i in range(self.model.num_spins):
-
-                for j in range(i):
-
-                    updated_param_j = self.model.J[i,j] - lr * self.cd_J([i,j], self.mcmc_chain)
-                    self.model._update_J(updated_param_j, [i,j])
+                if save_gradient_info:    
+                    if k == 0: max_grad_J = np.abs(calculate_cd_J); min_grad_J= np.abs(calculate_cd_J )
+                    if np.abs(calculate_cd_J) > max_grad_J : max_grad_J = np.abs(calculate_cd_J)
+                    if np.abs(calculate_cd_J) < min_grad_J : min_grad_J = np.abs(calculate_cd_J)
+    
+            ## Update h
+            for k in range(update_strategy[1]['num_random_bias']):  
                 
-                updated_param_h = self.model.h[i] - lr * self.cd_h(i, self.mcmc_chain)
+                index_h=list_random_indices[k]
+                calculate_cd_h = self.cd_h(index_h,self.mcmc_chain)
+                updated_param_h=self.model.h[index_h] - lr * calculate_cd_h
+                self.model._update_h(updated_param_h, index_h)
+
+                if save_gradient_info:
+                    if k == 0: max_grad_h= np.abs(calculate_cd_h) ; min_grad_h= np.abs(calculate_cd_h)
+                    if np.abs(calculate_cd_h) > max_grad_h : max_grad_h = np.abs(calculate_cd_h)
+                    if np.abs(calculate_cd_h) < min_grad_h : min_grad_h = np.abs(calculate_cd_h)
+
+            if save_gradient_info :
+                self.training_history['max-min-gradient'].append( [ (max_grad_J, min_grad_J) , (max_grad_h, min_grad_h)] )
+            
+
+        if update_strategy[0] == 'all' :     
+
+            for i in range(0,self.model.num_spins):
+                for j in range(0,i):
+
+                    calculate_cd_J = self.cd_J([i,j], self.mcmc_chain)
+                    updated_param_j = self.model.J[i,j] - lr * calculate_cd_J
+                    self.model._update_J(updated_param_j, [i,j])
+                    if save_gradient_info:    
+                        if i + j == 0: max_grad_J = np.abs(calculate_cd_J); min_grad_J = np.abs(calculate_cd_J )
+                        if np.abs(calculate_cd_J) > max_grad_J : max_grad_J = np.abs(calculate_cd_J)
+                        if np.abs(calculate_cd_J) < min_grad_J : min_grad_J = np.abs(calculate_cd_J)
+                
+                calculate_cd_h = self.cd_h(i, self.mcmc_chain)
+                updated_param_h = self.model.h[i] - lr * calculate_cd_h
                 self.model._update_h(updated_param_h, i)
+                if save_gradient_info:
+                    if i  == 0: max_grad_h= np.abs(calculate_cd_h) ; min_grad_h= np.abs(calculate_cd_h)
+                    if np.abs(calculate_cd_h) > max_grad_h : max_grad_h = np.abs(calculate_cd_h)
+                    if np.abs(calculate_cd_h) < min_grad_h : min_grad_h = np.abs(calculate_cd_h)
+            
+            if save_gradient_info :
+                self.training_history['max-min-gradient'].append( [ (max_grad_J, min_grad_J) , (max_grad_h, min_grad_h)] )
 
 
     def train(self, lr:float= 0.01, mcmc_settings = {'mcmc_type': 'quantum-enhanced', 'mixer': [[['random', 1]  ], []  ]},
-    epochs:int = 10, update_strategy = 'all', iterations: int = 100, num_random_Jij:int=5,
-    mcmc_steps:int = 500, show_kldiv:bool = True ):
+            epochs:int = 10, update_strategy = ['all', [] ],
+            mcmc_steps:int = 500,
+            save_training_data = {'kl_div': [True , 'exact-sampling' ], 'max-min-gradient': True },
+            verbose= True ):
 
-        ## random update strategy ##
-        # kl_div = []
-        iterator = tqdm(range(epochs), desc= 'training epochs')
-        iterator.set_postfix({'mcmc_type': mcmc_settings['mcmc_type'] })
+        """ mcmc_settings : type of mcmc sampler to be used for sampling from the paramterised model
+            update_strategy : chocie of the parameter update strategy 
+                             -> ['all' , []] : updates all paramters in the model
+                             -> ['random', {'num_random_bias': , 'num_random_interactions':}] : randomly pick num_random_ias 'bias' and num_random_interaction 'interaction' paramaters
+                                                                            to be updated in the call   
+        """    
+        self.training_history['specifications'].append( {'lr': lr, 'mcmc_settings': mcmc_settings, 'epochs': epochs, 'update_strategy': update_strategy, 'mcmc_steps': mcmc_steps } )
+        iterator = tqdm(range(epochs), desc= 'training epochs', disable= not verbose)
+        iterator.set_postfix({'mcmc_type': mcmc_settings['mcmc_type'], 'update-strategy': update_strategy[0] })
         for epoch in iterator:
 
             self._train_on_mcmc_chain( mcmc_settings= mcmc_settings  , lr= lr ,
-            iterations= iterations, num_random_Jij=num_random_Jij,
-            mcmc_steps= mcmc_steps, update_strategy= update_strategy )
+            mcmc_steps= mcmc_steps, update_strategy= update_strategy, save_gradient_info= save_training_data['max-min-gradient'] )
 
-            if show_kldiv:
+            if save_training_data['kl_div'][0]:
                 
-                # self.kl_div.append(kl_divergence(  self.data_distribution, self.mcmc_chain.get_accepted_dict(normalize= True)  ))
+                if save_training_data['kl_div'][1] == 'last-mcmc-chain':
+                    ## calculate kl-div from last mcmc_chain
+                    self.training_history['kl_div'].append(kl_divergence(  self.data_distribution, self.mcmc_chain.get_accepted_dict(normalize= True)  ))
                 
-                exact_sampled_model = Exact_Sampling(self.model, self.model_beta)
-                self.kl_div.append(kl_divergence(  self.data_distribution, exact_sampled_model.boltzmann_pd  ))
+                if save_training_data['kl_div'][1] == 'exact-sampling':    
+                    ## calculate kl-div from Exact Sampling current model
+                    exact_sampled_model = Exact_Sampling(self.model, self.model_beta)
+                    self.training_history['kl_div'].append(kl_divergence(  self.data_distribution, exact_sampled_model.boltzmann_pd  ))
                 
-                iterator.set_postfix( { 'mcmc_type': mcmc_settings['mcmc_type'], 'kl div ' : self.kl_div[-1] })
+                iterator.set_postfix( { 'mcmc_type': mcmc_settings['mcmc_type'],  'update-strategy': update_strategy[0], 'kl div ' : self.training_history['kl_div'][-1] })
         
         ## update training data ##
         # self.kl_div += kl_div
-        self.training_history['kl_div']= self.kl_div
+        # self.training_history['kl_div']= self.kl_div
 
     
     ########### scheduled-training ####################
     ###################################################
     
     # def train(self, lr:float= 0.01, method = 'quantum-enhanced', 
-    # epochs:int = 10, schedule:str= 'linear', num_random_Jij:int=5,
-    # show_kldiv:bool = True ):
+    # epochs:int = 10, schedule:str= 'linear', update_strategy[1]['num_random_interactions']:int=5,
+    # save_training_data:bool = True ):
 
     #     ## random update strategy ##
     #     kl_div = []; js_div= []
@@ -231,16 +270,16 @@ class cd_training():
     #     if schedule == 'linear': 
     #         mcmc_steps = np.linspace(100, 5000, epochs, dtype= int)
     #         # params = self.model.num_spins * (self.model.num_spins + 1) / 2
-    #         iterations = np.linspace(int(self.model.num_spins/4), self.model.num_spins, epochs, dtype= int)
+    #         update_strategy[1]['num_random_bias'] = np.linspace(int(self.model.num_spins/4), self.model.num_spins, epochs, dtype= int)
     #         lr_c = np.linspace(lr, 10 * lr, epochs, dtype= float )
 
     #     for epoch in iterator:
 
     #         self._train_on_mcmc_chain(lr= lr_c[epoch] , 
-    #         method = method, iterations= iterations[epoch], num_random_Jij=num_random_Jij,
+    #         method = method, update_strategy[1]['num_random_bias']= update_strategy[1]['num_random_bias'][epoch], update_strategy[1]['num_random_interactions']=update_strategy[1]['num_random_interactions'],
     #         mcmc_steps= mcmc_steps[epoch] )
 
-    #         if show_kldiv:
+    #         if save_training_data:
 
                 
     #             kl_div.append(kl_divergence(  self.data_distribution,self.mcmc_chain.get_accepted_dict(normalize= True)  ))
