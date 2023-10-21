@@ -51,6 +51,11 @@ def fn_qckt_problem_half(J:np.array,h, num_spins:int,
     where H_prob=sum_{j=1}^{n}[-(h_j*Z_j)] + sum_{j>k=1}^{n} [-J_{ij} * Z_{j} * Z_{k}]
     '''
     qc_problem_hamiltonian_half=QuantumCircuit(num_spins)
+
+    avg_interactions = ( np.mean(np.abs(h)), np.mean(np.abs(J))  )
+    epsilon = 10**(-3)
+    if avg_interactions[0] <= epsilon and avg_interactions[1] <= epsilon: 
+        return qc_problem_hamiltonian_half
     
     # 2- qubit term 
     pauli_z_index=[3,3]# (Z tensor Z)
@@ -158,6 +163,8 @@ def run_qmcmc_quantum_ckt(
     h=model.get_h
     J=model.get_J
 
+ 
+
     time=np.random.choice(list(range(2, 12)))
     gamma=np.round(np.random.uniform(low= min(gamma_range), high = max(gamma_range) ), decimals=6)
     num_trotter_steps=int(np.floor((time / delta_time)))
@@ -187,6 +194,7 @@ def run_qmcmc_quantum_ckt(
 def quantum_enhanced_mcmc_2(
         n_hops:int,
         model:IsingEnergyFunction,
+        mismatched_model = [False, None],
         initial_state:Optional[str]=None,
         temperature:float=1,
         gamma_range=(0.2,0.6),
@@ -273,7 +281,11 @@ def quantum_enhanced_mcmc_2(
                                         )
         if len(s_prime) == model.num_spins :
             # accept/reject s_prime
-            energy_sprime = model.get_energy(s_prime)
+            if mismatched_model[0]:
+                energy_sprime = mismatched_model[1].get_energy(s_prime)
+            else:
+                energy_sprime = model.get_energy(s_prime)
+
             accepted = test_accept(
                 energy_s, energy_sprime, temperature=temperature
             )
