@@ -304,8 +304,10 @@ class ProcessMCMCData():
 
     def CALCULATE_KL_DIV(self, save_data:bool= False, allow_reprocessing= False, seeds_new = None, mcmc_types_new= None  ):
         
+        not_computed = False
         ## data processing    
         if 'KL-DIV' not in self.processed_data:
+            not_computed = True
             seeds = self.seeds
             mcmc_types = self.mcmc_types
             self.processed_data['KL-DIV'] = { mcmc_type: [] for mcmc_type in self.mcmc_types }
@@ -320,7 +322,7 @@ class ProcessMCMCData():
                 for mcmc_type in mcmc_types:
                     self.processed_data['KL-DIV'][mcmc_type] = []
 
-        if 'KL-DIV' not in self.processed_data or allow_reprocessing:
+        if not_computed or allow_reprocessing:
             for seed in tqdm(seeds):
                 for mcmc_type in mcmc_types:
           
@@ -368,8 +370,10 @@ class ProcessMCMCData():
 
     def CALCULATE_MAGNETISATION(self, save_data:bool = False , allow_reprocessing= False, seeds_new = None, mcmc_types_new= None  ):
         
+        not_computed = False
         ## data processing
         if 'MAGNETISATION' not in self.processed_data:
+            not_computed = True
             seeds = self.seeds
             mcmc_types = self.mcmc_types
             self.processed_data['MAGNETISATION'] = { mcmc_type: [] for mcmc_type in mcmc_types }
@@ -386,7 +390,7 @@ class ProcessMCMCData():
                     self.processed_data['MAGNETISATION'][mcmc_type] = []
 
 
-        if 'MAGNETISATION' not in self.processed_data or allow_reprocessing:
+        if not_computed or allow_reprocessing:
         
             for seed in tqdm(seeds):
                 for mcmc_type in mcmc_types:
@@ -443,8 +447,10 @@ class ProcessMCMCData():
         
     def CALCULATE_MCMC_STATISTICS(self, save_data: bool = False, allow_reprocessing= False, seeds_new = None, mcmc_types_new= None ):
 
+        not_computed = False
         ## data processing ##        
         if 'MCMC-STATISTICS' not in self.processed_data:
+            not_computed = True
             seeds = self.seeds
             mcmc_types = self.mcmc_types
             self.processed_data['MCMC-STATISTICS'] = { seed: {} for seed in seeds }
@@ -459,7 +465,7 @@ class ProcessMCMCData():
             if mcmc_types_new == None: mcmc_types = self.mcmc_types 
             else: mcmc_types = mcmc_types_new
         
-        if 'MCMC-STATISTICS' not in self.processed_data or allow_reprocessing :
+        if not_computed or allow_reprocessing :
             
             for seed in tqdm(seeds, desc= "Processing MCMC Statistics"):
                 for mcmc_type in mcmc_types:
@@ -479,7 +485,7 @@ class ProcessMCMCData():
 
 ## HELPER FUNCTIONS ###
 
-def PLOT_MCMC_STATISTICS(self,  save_plot= False, mcmc_types_to_plot = 'all' , statistic_to_plot:str= 'acceptance_prob', kwargs_hamming = {'type': ['total', 'accepted'], 'width': 0.13}, kwargs_acceptance_prob= {'histtype':'stepfilled', 'stacked': True, 'density': True}):
+def PLOT_MCMC_STATISTICS(self: ProcessMCMCData,  save_plot= False, mcmc_types_to_plot = 'all' , statistic_to_plot:str= 'acceptance_prob', kwargs_hamming = {'type': ['total', 'accepted'], 'width': 0.13}, kwargs_acceptance_prob= {'histtype':'stepfilled', 'stacked': True, 'density': True}):
     
         ## plotting
         plt.figure(1,figsize=(20,15))
@@ -492,11 +498,12 @@ def PLOT_MCMC_STATISTICS(self,  save_plot= False, mcmc_types_to_plot = 'all' , s
         
         if statistic_to_plot == 'acceptance_prob':
             mcmc_labels = [mcmc_type for mcmc_type in mcmc_types_to_plot]
+            pos =1
             for seed in tqdm(self.seeds):    
                 
                     # stat_to_plot = [ np.log10( self.processed_data['MCMC-STATISTICS'][seed][mcmc_type][statistic_to_plot] ) for mcmc_type in mcmc_types_to_plot]
                     
-                    plt.subplot(dim1,dim2,seed)
+                    plt.subplot(dim1,dim2,pos) ; pos += 1
 
                     # for mcmc_label in mcmc_labels:
                     #     stat_to_plot = np.log10( self.processed_data['MCMC-STATISTICS'][seed][mcmc_label][statistic_to_plot] )
@@ -531,12 +538,13 @@ def PLOT_MCMC_STATISTICS(self,  save_plot= False, mcmc_types_to_plot = 'all' , s
                 
         elif statistic_to_plot == 'hamming':
             mcmc_labels = [mcmc_type for mcmc_type in mcmc_types_to_plot]
+            pos = 1
             for seed in tqdm(self.seeds):
                 
                 ticks = list(self.processed_data['MCMC-STATISTICS'][seed][mcmc_types_to_plot[0]][statistic_to_plot].keys())
                 
             
-                plt.subplot(dim1,dim2,seed)
+                plt.subplot(dim1,dim2,pos) ; pos += 1
 
                 width = kwargs_hamming['width']  
                 x = np.arange(len(ticks))
@@ -591,13 +599,16 @@ def PLOT_MCMC_STATISTICS(self,  save_plot= False, mcmc_types_to_plot = 'all' , s
 
         
             
-def PLOT_MAGNETISATION(self, save_plot= False , mcmc_types_to_plot = 'all'):
+def PLOT_MAGNETISATION(self: ProcessMCMCData, save_plot= False , mcmc_types_to_plot = 'all'):
     
         ## plotting
         fig, ax1 = plt.subplots(figsize=(26,16))
         left, bottom, width, height = [0.55, 0.2, 0.25, 0.25]
 
-        x=list(range(0,15000))
+        anc0 = list(self.data.keys())[0]
+        anc1 = list(self.data[anc0].keys())[0]
+        dim0 = len(self.data[anc0][anc1].markov_chain)
+        x=list(range(0,dim0-1))
         # mcmc_types = self.data[1].keys()
         if mcmc_types_to_plot == 'all': 
             mcmc_types_to_plot = self.processed_data['MAGNETISATION'].keys()
@@ -623,10 +634,13 @@ def PLOT_MAGNETISATION(self, save_plot= False , mcmc_types_to_plot = 'all'):
             
         plt.show()
 
-def PLOT_KL_DIV(self, save_plot = False, mcmc_types_to_plot = 'all'):
+def PLOT_KL_DIV(self:ProcessMCMCData , save_plot = False, mcmc_types_to_plot = 'all'):
     
         ## plotting
-        x=list(range(0,15000+1))
+        anc0 = list(self.data.keys())[0]
+        anc1 = list(self.data[anc0].keys())[0]
+        dim0 = len(self.data[anc0][anc1].markov_chain)
+        x=list(range(0,dim0))
         plt.figure(figsize=(12,8))
         if mcmc_types_to_plot == 'all': 
             mcmc_types_to_plot = self.processed_data['KL-DIV'].keys()
