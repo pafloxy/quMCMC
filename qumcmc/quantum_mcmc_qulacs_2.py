@@ -234,7 +234,12 @@ def quantum_enhanced_mcmc_2(
     else:
         initial_state = MCMCState(initial_state, accepted=True)
     current_state: MCMCState = initial_state
-    energy_s = model.get_energy(current_state.bitstring)
+    
+    if mismatched_model[0]:
+        energy_s = mismatched_model[1].get_energy(current_state.bitstring)
+    else:
+        energy_s = model.get_energy(current_state.bitstring)
+
     if verbose: print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
     mcmc_chain = MCMCChain([current_state], name= name +': '+str(mixer))
@@ -292,7 +297,12 @@ def quantum_enhanced_mcmc_2(
             mcmc_chain.add_state(MCMCState(s_prime, accepted))
             if accepted:
                 current_state = mcmc_chain.current_state
-                energy_s = model.get_energy(current_state.bitstring)
+                if mismatched_model[0]:
+                    energy_s = mismatched_model[1].get_energy(current_state.bitstring)
+                else:
+                    energy_s = model.get_energy(current_state.bitstring)
+
+                
         else: pass    
     
         
