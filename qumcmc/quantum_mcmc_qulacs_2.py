@@ -207,10 +207,9 @@ def quantum_enhanced_mcmc_2(
     ARGS:
     ----
     Nhops: Number of time you want to run mcmc
-    model:
-    return_last_n_states:
-    return_both:
-    temp:
+    model: The model to be sampled from
+    mismathced_model: [False, mismathced_model] If True it uses the mismatched_model for the circuit construction step, 
+                        If False, `model` is used both fo circuit construction and energy-comparison    
     mixer: list
         Specifies the type fo mixer configurations and their corresponding probability used during MCMC
 
@@ -235,10 +234,7 @@ def quantum_enhanced_mcmc_2(
         initial_state = MCMCState(initial_state, accepted=True)
     current_state: MCMCState = initial_state
     
-    if mismatched_model[0]:
-        energy_s = mismatched_model[1].get_energy(current_state.bitstring)
-    else:
-        energy_s = model.get_energy(current_state.bitstring)
+    energy_s = model.get_energy(current_state.bitstring)
 
     if verbose: print("starting with: ", current_state.bitstring, "with energy:", energy_s)
 
@@ -276,9 +272,13 @@ def quantum_enhanced_mcmc_2(
             mixer_type_index = np.random.choice(range(len(mixer[0])), p= mixer[1] )
             mixer_type = mixer[0][mixer_type_index]  
         
+        if mismatched_model[0]: 
+            model_for_circuit = mismatched_model[1]
+        else:
+            model_for_circuit = model
 
         s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
-                                        model = model,
+                                        model = model_for_circuit,
                                         alpha = model.alpha, num_spins = num_spins,
                                         gamma_range = gamma_range,
                                         mixer_type = mixer_type ,
@@ -286,10 +286,7 @@ def quantum_enhanced_mcmc_2(
                                         )
         if len(s_prime) == model.num_spins :
             # accept/reject s_prime
-            if mismatched_model[0]:
-                energy_sprime = mismatched_model[1].get_energy(s_prime)
-            else:
-                energy_sprime = model.get_energy(s_prime)
+            energy_sprime = model.get_energy(s_prime)
 
             accepted = test_accept(
                 energy_s, energy_sprime, temperature=temperature
@@ -297,10 +294,7 @@ def quantum_enhanced_mcmc_2(
             mcmc_chain.add_state(MCMCState(s_prime, accepted))
             if accepted:
                 current_state = mcmc_chain.current_state
-                if mismatched_model[0]:
-                    energy_s = mismatched_model[1].get_energy(current_state.bitstring)
-                else:
-                    energy_s = model.get_energy(current_state.bitstring)
+                energy_s = model.get_energy(current_state.bitstring)
 
                 
         else: pass    
