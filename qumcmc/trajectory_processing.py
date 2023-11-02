@@ -665,3 +665,164 @@ def PLOT_KL_DIV(self:ProcessMCMCData , save_plot = False, mcmc_types_to_plot = '
                 os.chdir('../..')        
         
         plt.show()
+
+############################## Updates 01/11/23 ########
+########################################################
+
+def Reshuffle(data, type= 'gamma', MCMCTYPES=None, GAMMATYPES= None, dtypes =  ['KL-DIV', 'MAGNETISATION'] ):
+    if type == 'gamma':    
+        # MCMCTYPES = data['p'].mcmc_types
+        RESULT_shuffled = { mcmc_types : { dtype : {} for dtype in dtypes  } for mcmc_types in MCMCTYPES}
+        for mcmc_type in MCMCTYPES:
+            for dtype in dtypes:
+                for gamma_type in GAMMATYPES:
+                    RESULT_shuffled[mcmc_type][dtype][gamma_type] = data[gamma_type].processed_data[dtype][mcmc_type] 
+            
+            RESULT_shuffled[mcmc_type]['MCMC-STATISTICS'] = { _ : {} for _ in data[gamma_type].processed_data['MCMC-STATISTICS'].keys()}
+            for gamma_type in GAMMATYPES:
+                for _ in data[gamma_type].processed_data['MCMC-STATISTICS'].keys() :
+                    RESULT_shuffled[mcmc_type]['MCMC-STATISTICS'][_][gamma_type] = data[gamma_type].processed_data['MCMC-STATISTICS'][_][mcmc_type]
+                    
+                 
+        
+    
+    if type == 'mcmc_type':    
+        # MCMCTYPES = data['p'].mcmc_types
+        RESULT_shuffled = { gamma_types : { dtype : {} for dtype in dtypes  } for gamma_types in GAMMATYPES}
+        for gamma_type in GAMMATYPES:
+            for dtype in ['KL-DIV', 'MAGNETISATION']:
+                for mcmc_type in MCMCTYPES:        
+                    RESULT_shuffled[gamma_type][dtype][mcmc_type] = data[gamma_type].processed_data[dtype][mcmc_type] 
+                
+                RESULT_shuffled[gamma_type]['MCMC-STATISTICS'] = data[gamma_type].processed_data['MCMC-STATISTICS']
+
+    # if type == 'mcmc_statistics':
+
+        
+    return RESULT_shuffled
+
+class EXPERIMENTRESULTS():
+
+    def __init__(self, exp_results:dict, type:str, model: Exact_Sampling, mcmc_types, gamma_ranges, savefile_path: str = None, name: str= 'SAMPLINGRESULT') -> None:
+        
+        self.exp_result = Reshuffle(exp_results,type= type, MCMCTYPES= mcmc_types, GAMMATYPES= gamma_ranges)
+        self.mcmc_types = mcmc_types
+        self.gamma_ranges = gamma_ranges
+        self.model = model
+        if type == 'gamma': 
+            self.upper_types = self.mcmc_types
+            self.lower_types = self.gamma_ranges
+        elif type == 'mcmc_type':
+            self.upper_types = self.gamma_ranges
+            self.lower_types = self.mcmc_types
+        
+def PLOT_MCMC_STATISTICS_HAMMING(data, figsize, kwargs_hamming = {'type': ['total', 'accepted'], 'width': 0.13} ):
+
+    for uptype in data.upper_types :
+        print ( 'Type : ' + uptype )    
+
+        plt.figure(figsize=(20,15))
+        labels = list(data.exp_result[uptype]['MCMC-STATISTICS'].keys())
+        dim1 = int(np.ceil(len(labels)/2)); dim2 = 2; pos = 1
+
+        for seed in tqdm( data.exp_result[uptype]['MCMC-STATISTICS'].keys() ):
+            
+            plt.subplot(dim1,dim2,pos) ; pos += 1
+            width = kwargs_hamming['width']  
+            
+            if 'total' in kwargs_hamming['type']:        
+                multiplier = 0            
+                for type in data.lower_types :
+                    ticks = list(data.exp_result[uptype]['MCMC-STATISTICS'][seed][type]['hamming'].keys()); x = np.arange(len(ticks))
+                    offset = width * multiplier
+                    values_1 = [data.exp_result[uptype]['MCMC-STATISTICS'][seed][type]['hamming'][key]['total'] for key in ticks ]
+                    rects = plt.bar(x + offset, values_1, width, label= type, alpha = 0.5, edgecolor = 'k')
+                    # plt.bar_label(rects, padding=3)
+                    multiplier += 1
+            
+            if 'accepted' in kwargs_hamming['type']:
+                multiplier = 0            
+                for type in data.lower_types :
+                    ticks = list(data.exp_result[uptype]['MCMC-STATISTICS'][seed][type]['hamming'].keys()); x = np.arange(len(ticks))
+                    offset = width * multiplier
+                    values_2 = [data.exp_result[uptype]['MCMC-STATISTICS'][seed][type]['hamming'][key]['accepted'] for key in ticks ]
+                    if 'total' in kwargs_hamming['type']: rects = plt.bar(x + offset, values_2, width, alpha = 1.0, fill= False, edgecolor = 'k', hatch= '///')
+                    else : rects = plt.bar(x + offset, values_2, width, alpha = 0.5, edgecolor = 'k', label= type)
+                    # plt.bar_label(rects, padding=3)
+                    multiplier += 1
+
+        
+            plt.xticks(x + width, ticks)    
+            if seed==9 or seed==10:
+                plt.xlabel('hamming')
+            
+            lgnd = plt.legend(loc='upper left', ncols= len(labels))
+        plt.show()
+
+def PLOT_KL_DIV_NEW(data , figsize=(26,16), save_plot = False,):
+    
+        ## plotting
+        plt.figure(figsize=figsize)
+        dim1 = int(np.ceil(len(data.upper_types)/2)) ; dim2 = 2 
+        pos = 1
+
+        for uptype in data.upper_types :
+            plt.subplot(dim1, dim2, pos) ; pos += 1
+            for lotype in data.lower_types :
+                x= list(range(0, len(data.exp_result[uptype]['KL-DIV'][lotype][0])))
+                plot_with_error_band(x, data.exp_result[uptype]['KL-DIV'][lotype] ,label= lotype)
+        
+            plt.xlabel("iterations ")
+            plt.ylabel("KL divergence")
+            plt.yscale('log')
+            plt.legend()
+            plt.title(uptype)
+        
+        # plt.suptitle('KL-Div ')
+        # if save_plot:
+        #         os.chdir(data.savefile_path)      
+        #         figname = data.name + 'KL-DIV.pdf'
+        #         plt.savefig(figname)
+        
+        #         os.chdir('../..')        
+        
+        plt.show()
+
+def PLOT_MAGNETISATION_NEW(data , figsize=(26,16), save_plot = False,):
+    
+        ## plotting
+        plt.figure(figsize= figsize)
+        dim1 = int(np.ceil(len(data.upper_types)/2)) ; dim2 = 2 ; pos = 1
+        # left, bottom, width, height = [0.55, 0.2, 0.25, 0.25]
+
+        # anc0 = list(self.data.keys())[0]
+        # anc1 = list(self.data[anc0].keys())[0]
+        # dim0 = len(self.data[anc0][anc1].markov_chain)
+        # x=list(range(0,dim0-1))
+        # mcmc_types = self.data[1].keys()
+
+        for uptype in data.upper_types :
+            plt.subplot(dim1, dim2, pos); pos += 1
+            # fig, ax1 = plt.subplots()
+            for lotype in data.lower_types :
+                mean_mag_local=np.mean(data.exp_result[uptype]['MAGNETISATION'][lotype],axis=0)
+                x = range(0, len(mean_mag_local))
+                std_local=np.std(data.exp_result[uptype]['MAGNETISATION'][lotype],axis=0)
+                plt.plot(x,mean_mag_local,label= lotype)
+                plt.fill_between(x,mean_mag_local-std_local/2,mean_mag_local+std_local/2,alpha=0.45)
+
+
+            plt.axhline(data.model.get_observable_expectation(magnetization_of_state), label= 'actual',linestyle='--')
+            plt.legend()
+            plt.title(uptype)
+            plt.xlabel("Iterations")
+            plt.ylabel("Magnetisation")
+        plt.suptitle('')
+        
+        # if save_plot:       
+        #         os.chdir(self.savefile_path)         
+        #         figname = self.name + 'MAGNETISATION.pdf'
+        #         plt.savefig(figname)
+        #         os.chdir('../..')        
+            
+        plt.show()
