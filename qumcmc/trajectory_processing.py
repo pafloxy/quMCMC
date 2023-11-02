@@ -264,6 +264,11 @@ class ProcessMCMCData():
         self.CALCULATE_KL_DIV(save_data= save_data  )
         self.CALCULATE_MAGNETISATION(save_data= save_data  )
         self.CALCULATE_MCMC_STATISTICS(save_data= save_data  )
+        if save_data :
+            os.chdir(self.savefile_path)                
+            with open(self.name + '.pkl','wb') as f:
+                    pickle.dump(self,f)
+            os.chdir('../..')
     
     def UPDATE_DATA(self, new_data: dict, new_seeds, new_mcmc_types, save_data = True):
 
