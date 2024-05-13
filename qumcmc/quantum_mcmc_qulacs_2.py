@@ -2,7 +2,7 @@
 ## IMPORTS ##
 ###########################################################################################
 import numpy as np
-from typing import Optional
+from typing import Optional, Union, List, Tuple
 from tqdm import tqdm
 from collections import Counter
 from .basic_utils import qsm, states, MCMCChain, MCMCState
@@ -104,11 +104,12 @@ def fn_qckt_X_mixer(num_spins:int, gamma:float, delta_time:float,
     
     if mixer_type[0] == 'custom':
         possible_qubit_combinations = mixer_type[1]
-        
-
     elif mixer_type[0] == 'random':
          #len(pauli_id_single_term_in_mixer)
         possible_qubit_combinations= [list(i) for i in combinations(qubit_indices, mixer_type[1]) ]  # in ascending order
+
+    # print("possible qubit combination")
+    # print(possible_qubit_combinations)
 
     # create the circuit
     for i in range(0,len(possible_qubit_combinations)):
@@ -197,7 +198,7 @@ def quantum_enhanced_mcmc_2(
         mismatched_model = [False, None],
         initial_state:Optional[str]=None,
         temperature:float=1,
-        gamma_range=(0.2,0.6),
+        gamma_range:Union[Tuple, List[Tuple]]=(0.2,0.6),
         delta_time=0.8, 
         mixer= [ [['random', 1]], []],
         # pauli_weight_x_mixer:int=1,
@@ -271,6 +272,12 @@ def quantum_enhanced_mcmc_2(
         else:
             mixer_type_index = np.random.choice(range(len(mixer[0])), p= mixer[1] )
             mixer_type = mixer[0][mixer_type_index]  
+            # print(f"Mixer type is: {mixer_type}")
+            ### I think this is where I would need to add List of tuples for the gamma
+            gamma = gamma_range
+            if type(gamma_range)==list:
+                gamma = gamma_range[mixer_type_index]### seems to be working fine
+            # print(f"gamma is: {gamma}")
         
         if mismatched_model[0]: 
             model_for_circuit = mismatched_model[1]
@@ -280,7 +287,7 @@ def quantum_enhanced_mcmc_2(
         s_prime=run_qmcmc_quantum_ckt(state_s=current_state.bitstring,
                                         model = model_for_circuit,
                                         alpha = model.alpha, num_spins = num_spins,
-                                        gamma_range = gamma_range,
+                                        gamma_range = gamma, #gamma_range,
                                         mixer_type = mixer_type ,
                                         delta_time = delta_time
                                         )
