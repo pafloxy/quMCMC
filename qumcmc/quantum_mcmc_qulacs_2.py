@@ -273,7 +273,6 @@ def quantum_enhanced_mcmc_2(
             mixer_type_index = np.random.choice(range(len(mixer[0])), p= mixer[1] )
             mixer_type = mixer[0][mixer_type_index]  
             # print(f"Mixer type is: {mixer_type}")
-            ### I think this is where I would need to add List of tuples for the gamma
             gamma = gamma_range
             if type(gamma_range)==list:
                 gamma = gamma_range[mixer_type_index]### seems to be working fine
