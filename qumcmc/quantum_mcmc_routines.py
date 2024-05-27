@@ -180,7 +180,7 @@ def quantum_enhanced_mcmc(
 
     num_spins = model.num_spins
 
-    if isinstance(gamma, Union[float, int]):
+    if isinstance(gamma, float) or isinstance(gamma, int):
         gammafunc = lambda: gamma
     else:
         gammafunc = lambda: np.random.uniform(*gamma)
