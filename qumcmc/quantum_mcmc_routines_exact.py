@@ -5,7 +5,7 @@ import numpy as np
 from typing import Optional
 from tqdm import tqdm
 from collections import Counter
-from .basic_utils import qsm, states, MCMCChain, MCMCState
+from .basic_utils import  states, MCMCChain, MCMCState
 # from .prob_dist import *
 from .energy_models import IsingEnergyFunction
 from .classical_mcmc_routines import test_accept, get_random_state
