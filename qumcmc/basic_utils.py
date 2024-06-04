@@ -371,7 +371,7 @@ def fn_states_not_accepted(
 
 def int_to_str(state_obtained, nspin):
     return f"{state_obtained:0{nspin}b}"
-def random_bstr(n,k):
+def random_bstr(n,k=1):
     assert n >= k
     s = '1'*k + '0'*(n-k)
     perm = list(permutations(s))
@@ -384,6 +384,18 @@ def random_bstr(n,k):
     
 int_to_binary = lambda state_obtained, n_spins : f"{state_obtained:0{n_spins}b}"
 binary_to_bipolar = lambda string : 2.0 * float(string) - 1.0
+
+
+def get_random_state(num_spins: int) -> str:
+    """
+    Returns s' , obtained via uniform transition rule!
+    """
+    num_elems = 2 ** (num_spins)
+    next_state = np.random.randint(
+        0, num_elems
+    )  # since upper limit is exclusive and lower limit is inclusive
+    bin_next_state = f"{next_state:0{num_spins}b}"
+    return bin_next_state
 
 ###########################################################################################
 ## VISUALISATIONS AND PLOTTING ##

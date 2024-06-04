@@ -8,24 +8,14 @@ from .energy_models import IsingEnergyFunction
 from typing import Dict, List, Optional
 from tqdm import tqdm
 from collections import Counter
-from .basic_utils import MCMCChain, MCMCState, xor_strings, random_bstr
+from .basic_utils import MCMCChain, MCMCState, xor_strings, random_bstr, get_random_state
+from .classical_mixers import ClassicalMixer, UniformProposals
 
-
-
+from abc import ABC, abstractmethod
+from typing import List
 ###########################################################################################
 ## CLASSICAL MCMC ROUTINES ##
 ###########################################################################################
-
-def get_random_state(num_spins: int) -> str:
-    """
-    Returns s' , obtained via uniform transition rule!
-    """
-    num_elems = 2 ** (num_spins)
-    next_state = np.random.randint(
-        0, num_elems
-    )  # since upper limit is exclusive and lower limit is inclusive
-    bin_next_state = f"{next_state:0{num_spins}b}"
-    return bin_next_state
 
 
 def test_accept(
@@ -46,10 +36,10 @@ def test_accept(
 def classical_mcmc(
     n_hops: int,
     model: IsingEnergyFunction ,
+    proposition_method: ClassicalMixer = UniformProposals(1),
     initial_state: Optional[str] = None,
     temperature: float = 1.,
     verbose:bool= False,
-    proposition_method= [  [['uniform']], [] ],
     name = 'cl-mcmc'
     # num_flips:int = 1
 ):
@@ -88,19 +78,20 @@ def classical_mcmc(
 
     for _ in tqdm(range(0, n_hops), desc= 'running MCMC steps ...', disable= not verbose):
         # get sprime
-        if len(proposition_method[0]) == 1 : 
-            method = proposition_method[0][0][0]; 
-            if method != 'uniform' : num_flips = proposition_method[0][0][1]
-        else : 
-            p_i = np.random.choice(range(len(proposition_method[0])), p = proposition_method[1])
-            method = proposition_method[0][p_i][0] 
-            if method != 'uniform' : num_flips = proposition_method[0][p_i][1]
+        # if len(proposition_method[0]) == 1 : 
+        #     method = proposition_method[0][0][0]; 
+        #     if method != 'uniform' : num_flips = proposition_method[0][0][1]
+        # else : 
+        #     p_i = np.random.choice(range(len(proposition_method[0])), p = proposition_method[1])
+        #     method = proposition_method[0][p_i][0] 
+        #     if method != 'uniform' : num_flips = proposition_method[0][p_i][1]
 
-        if method == 'uniform' :
-            s_prime = get_random_state(num_spins)
-        elif method == 'local' :
-            rbstr = random_bstr(num_spins, num_flips)
-            s_prime = xor_strings(current_state.bitstring, rbstr)
+        # if method == 'uniform' :
+        #     s_prime = get_random_state(num_spins)
+        # elif method == 'local' :
+        #     rbstr = random_bstr(num_spins, num_flips)
+        #     s_prime = xor_strings(current_state.bitstring, rbstr)
+        s_prime = proposition_method.propose_transition(current_state.bitstring)
 
         # accept/reject s_prime
         energy_sprime = model.get_energy(s_prime)   # to make this scalable, I think you need to calculate energy ratios.
@@ -114,3 +105,71 @@ def classical_mcmc(
         
     return mcmc_chain
 
+# class ClassicalMixer(ABC):
+    
+#     def __init__(self, num_spins: int) -> None:
+#         self.num_spins = num_spins
+#         # self.current_state = current_state
+#         self._precompute_properties()
+
+#     @abstractmethod
+#     def propose_transition(self): ...
+
+#     def _precompute_properties(self):
+#         pass
+
+# class UniformProposals(ClassicalMixer):
+
+#     def _init_(self, num_spins:int) -> None: 
+#         super().__init__(num_spins)
+
+#     def propose_transition(self):
+#         return get_random_state(self.num_spins)
+
+# class FixedWeightProposals(ClassicalMixer):
+
+#     def __init__(self, num_spins: int, bodyness: int, current_state: str ) -> None:
+#         self.bodyness = bodyness
+#         self.current_state = current_state
+
+#         assert self.bodyness <= self.num_spins , "Incorrect"
+        
+#         super().__init__(num_spins)
+        
+#     def propose_transition(self):
+#         rbstr = random_bstr(self.num_spins, self.bodyness)
+#         return xor_strings(self.current_state, rbstr)
+
+# class CustomProposals(ClassicalMixer):
+
+#     def __init__(self, num_spins: int, flip_pattern: List[int], current_state: str) -> None:
+#         self.flip_pattern =flip_pattern
+#         self.current_state = current_state
+#         super().__init__(num_spins)
+
+#     def propose_transition(self):
+#         rbstr = ''
+#         __ = [ '1' if i in self.flip_pattern else '0' for i in range(self.num_spins)]
+#         for _ in __ : rbstr += _ 
+#         return xor_strings(self.current_state, rbstr)
+    
+# class CombineProposals(ClassicalMixer):
+
+#     def __init__(self, proposal_methods: List[ClassicalMixer], probabilities: List[float], current_state: str) -> None:
+#         # super().__init__(num_spins) 
+#         self.num_spins = proposal_methods[0].num_spins
+#         assert all(
+#             self.num_spins == pm.num_spins for pm in proposal_methods
+#         ), "Mixers don't have the same number of qubits"
+#         assert len(probabilities) == len(
+#             proposal_methods
+#         ), "Length of list of mixers and probabilities is not equal" 
+
+#         self.probabilities = np.array(probabilities) / sum(probabilities)
+#         self.proposal_methods = proposal_methods
+#         self.current_state = current_state
+
+#         def propose_transition(self):
+#             proposal_method = np.random.choice(self.proposal_methods, p = self.probabilities)
+#             return proposal_method.propose_transition()
+#             # return 
