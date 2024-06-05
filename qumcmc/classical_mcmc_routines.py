@@ -45,7 +45,7 @@ def test_accept(
 def classical_mcmc(
     n_hops: int,
     model: IsingEnergyFunction,
-    proposition_method: ClassicalMixer = UniformProposals(1),
+    proposition_method: ClassicalMixer,
     initial_state: Optional[str] = None,
     temperature: float = 1.0,
     verbose: bool = False,
