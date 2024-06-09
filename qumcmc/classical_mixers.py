@@ -24,7 +24,8 @@ class UniformProposals(ClassicalMixer):
 
     def _init_(self, num_spins:int, ) -> None: 
         super().__init__(num_spins)
-
+    def __repr__(self):
+        return f"UniformProposals({self.num_spins})"
     def propose_transition(self, current_state= None):
         assert len(current_state) == self.num_spins , "Wrong 'current_state' "
         return get_random_state(self.num_spins)
@@ -36,7 +37,8 @@ class FixedWeightProposals(ClassicalMixer):
         assert self.bodyness <= num_spins , "Incorrect"
         
         super().__init__(num_spins)
-        
+    def __repr__(self):
+        return f"FixedWeightProposals({self.num_spins}, ({self.bodyness}))"
     def propose_transition(self, current_state: str):
         assert len(current_state) == self.num_spins , "Wrong 'current_state' "
         rbstr = random_bstr(self.num_spins, self.bodyness)
@@ -47,7 +49,8 @@ class CustomProposals(ClassicalMixer):
     def __init__(self, num_spins: int, flip_pattern: List[int]) -> None:
         self.flip_pattern =flip_pattern
         super().__init__(num_spins)
-
+    def __repr__(self):
+        return f"CustomProposals({self.num_spins}, pattern: {self.flip_pattern})"
     def propose_transition(self, current_state: str):
         assert len(current_state) == self.num_spins , "Wrong 'current_state' "
         rbstr = ''
@@ -69,7 +72,8 @@ class CombineProposals(ClassicalMixer):
 
         self.probabilities = np.array(probabilities) / sum(probabilities)
         self.proposal_methods = proposal_methods
-
+    def __repr__(self):
+        return f"CombinedProposals( num-proposal-methods = {len(self.proposal_methods)} , p = {self.probabilities})"
     def propose_transition(self, current_state: str):
             assert len(current_state) == self.num_spins , "Wrong 'current_state' "
             proposal_method = np.random.choice(self.proposal_methods, p = self.probabilities)
