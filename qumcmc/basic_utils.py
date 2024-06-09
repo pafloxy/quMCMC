@@ -614,3 +614,5 @@ def get_cardinality_dataset(n_qubits, card=2):
 
     binary_strings = generate_binary_strings(n_qubits)
     return [b for b in binary_strings if b.count("1")==card]
+
+

@@ -51,6 +51,9 @@ class IsingEnergyFunction:
         else:
             self.name = name
 
+    def __repr__(self) : 
+        return f"Ising Model:{self.name}| num-spins: {self.num_spins}"
+    
     @property
     def get_J(self):
         return self.J
