@@ -13,6 +13,8 @@ from .classical_mixers import ClassicalMixer, UniformProposals
 
 from abc import ABC, abstractmethod
 from typing import List
+
+from dataclasses import dataclass
 ###########################################################################################
 ## CLASSICAL MCMC ROUTINES ##
 ###########################################################################################
@@ -104,6 +106,36 @@ def classical_mcmc(
             energy_s = model.get_energy(current_state.bitstring)
         
     return mcmc_chain
+
+####
+## decorator class for running classical_mcmc() 
+from .mcmc_sampler_base import mcmc_sampler
+@dataclass
+class clmcmc_sampler(mcmc_sampler) : 
+    
+    def __init__(self, 
+        n_hops: int ,
+        model: IsingEnergyFunction,
+        proposition_method: ClassicalMixer,
+        initial_state: Optional[str] = None,
+        temperature: float = 1,
+        verbose: bool = False,
+        name: str = "Cl-MCMC") -> None :  
+        
+        self.proposition_method = proposition_method
+        super().__init__(n_hops, model, initial_state, temperature, verbose, name)
+
+    def __repr__(self):
+        return f"Classical MCMCSampler: {self.name} \n ------------------- Iterations : {self.n_hops} \n Model : {self.model} \n PropositionType : {self.proposition_method} \n initial-state : {self.initial_state} \ntemp : {self.temperature}" 
+        # pass 
+    def run(self): 
+        return classical_mcmc(n_hops= self.n_hops ,
+                                     model= self.model , 
+                                     proposition_method= self.proposition_method ,
+                                     initial_state= self.initial_state , 
+                                     temperature= self.temperature ,                                      
+                                     verbose= self.verbose , 
+                                     name = self.name)
 
 # class ClassicalMixer(ABC):
     
