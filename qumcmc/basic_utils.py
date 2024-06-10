@@ -8,6 +8,7 @@ import pandas as pd
 
 from tqdm import tqdm
 
+import random
 from itertools import permutations
 from collections import Counter
 from collections_extended import IndexedDict
@@ -45,10 +46,6 @@ import matplotlib.pyplot as plt
 # aer = Aer.get_backend("aer_simulator")
 
 
-
-
-
-
 ###########################################################################################
 ## MCMC Chain and States ##
 ###########################################################################################
@@ -58,25 +55,31 @@ import matplotlib.pyplot as plt
 class MCMCState:
     bitstring: str
     accepted: bool
-    
+
+
 @dataclass(init=True)
 class MCMCChain:
-    def __init__(self, states: Optional[List[MCMCState]] = None, name: Optional[str] = 'MCMC'):
-        
-        self.name = name 
+    def __init__(
+        self, states: Optional[List[MCMCState]] = None, name: Optional[str] = "MCMC"
+    ):
+
+        self.name = name
 
         if len(states) is None:
             self._states: List[MCMCState] = []
             self._current_state: MCMCState = None
             self._states_accepted: List[MCMCState] = []
             self.markov_chain: List[str] = []
-        
+
         else:
             self._states = states
-            self._current_state : MCMCState = next((s for s in self._states[::-1] if s.accepted), None)
-            self._states_accepted : List[MCMCState] = [ state for state in states if state.accepted]
+            self._current_state: MCMCState = next(
+                (s for s in self._states[::-1] if s.accepted), None
+            )
+            self._states_accepted: List[MCMCState] = [
+                state for state in states if state.accepted
+            ]
             self.markov_chain: List[str] = self.get_list_markov_chain()
-        
 
     def add_state(self, state: MCMCState):
         if state.accepted:
@@ -85,22 +88,19 @@ class MCMCChain:
         self.markov_chain.append(self._current_state.bitstring)
         self._states.append(state)
 
-
     @property
     def states(self):
         return self._states
 
-    
     @property
     def current_state(self):
         return self._current_state
-
 
     @property
     def accepted_states(self) -> List[str]:
 
         return [state.bitstring for state in self._states_accepted]
-    
+
     ### added by neel 13-Jan-2023 - edited by Manuel 12-Feb
     def get_list_markov_chain(self) -> List[str]:
         markov_chain_in_state = [self.states[0].bitstring]
@@ -110,11 +110,11 @@ class MCMCChain:
             if whether_accepted == True:
                 markov_chain_in_state.append(mcmc_state)
             else:
-                markov_chain_in_state.append(markov_chain_in_state[i-1])
+                markov_chain_in_state.append(markov_chain_in_state[i - 1])
         self.markov_chain = markov_chain_in_state
         return self.markov_chain
 
-    def get_accepted_dict(self, normalize: bool=False, until_index: int = -1):
+    def get_accepted_dict(self, normalize: bool = False, until_index: int = -1):
         if until_index != -1:
             accepted_states = self.markov_chain[:until_index]
         else:
@@ -122,27 +122,31 @@ class MCMCChain:
 
         if normalize:
             length = len(accepted_states)
-            accepted_dict = Counter({s: count/length for s, count in Counter(accepted_states).items()})
+            accepted_dict = Counter(
+                {s: count / length for s, count in Counter(accepted_states).items()}
+            )
         else:
             accepted_dict = Counter(accepted_states)
 
         return accepted_dict
 
 
-
-
 ###########################################################################################
 ## HELPER FUNCTIONS ##
 ###########################################################################################
 
-def uncommon_els_2_lists(list_1,list_2):
-  return list(set(list_1).symmetric_difference(set(list_2)))
+
+def uncommon_els_2_lists(list_1, list_2):
+    return list(set(list_1).symmetric_difference(set(list_2)))
+
 
 def merge_2_dict(dict1, dict2):
-    return({**dict1,**dict2})
+    return {**dict1, **dict2}
 
-def sort_dict_by_keys(dict_in:dict):
-  return dict(IndexedDict(sorted(dict_in.items())))
+
+def sort_dict_by_keys(dict_in: dict):
+    return dict(IndexedDict(sorted(dict_in.items())))
+
 
 def xor_strings(s1, s2):
     # Ensure strings are of the same length
@@ -205,6 +209,7 @@ def value_sorted_dict(dict_in, reverse=False):
         for k, v in sorted(dict_in.items(), key=lambda item: item[1], reverse=reverse)
     }
     return sorted_dict
+
 
 def value_sorted_dict(dict_in, reverse=False):
     """Sort the dictionary in ascending or descending(if reverse=True) order of values"""
@@ -288,6 +293,7 @@ def running_avg_magnetization_as_list(list_states_mcmc: list):
         ]
     )
 
+
 def hamming_dist(str1, str2):
     i = 0
     count = 0
@@ -369,21 +375,33 @@ def fn_states_not_accepted(
     )
     return dict_numtimes_states_not_accepted, dict_numtimes_sprime_is_state
 
+
 def int_to_str(state_obtained, nspin):
     return f"{state_obtained:0{nspin}b}"
-def random_bstr(n,k=1):
+
+
+# def random_bstr(n,k=1):
+#     assert n >= k
+#     s = '1'*k + '0'*(n-k)
+#     perm = list(permutations(s))
+#     r = perm[np.random.randint(0, len(perm))]
+#     rnd_str = ''
+#     for i in r :
+#         rnd_str += i
+
+#     return rnd_str
+
+
+def random_bstr(n, k=1):
     assert n >= k
-    s = '1'*k + '0'*(n-k)
-    perm = list(permutations(s))
-    r = perm[np.random.randint(0, len(perm))]
-    rnd_str = ''
-    for i in r :
-        rnd_str += i
-    
-    return rnd_str
-    
-int_to_binary = lambda state_obtained, n_spins : f"{state_obtained:0{n_spins}b}"
-binary_to_bipolar = lambda string : 2.0 * float(string) - 1.0
+    s = "1" * k + "0" * (n - k)
+    s_list = list(s)
+    random.shuffle(s_list)
+    return "".join(s_list)
+
+
+int_to_binary = lambda state_obtained, n_spins: f"{state_obtained:0{n_spins}b}"
+binary_to_bipolar = lambda string: 2.0 * float(string) - 1.0
 
 
 def get_random_state(num_spins: int) -> str:
@@ -396,6 +414,7 @@ def get_random_state(num_spins: int) -> str:
     )  # since upper limit is exclusive and lower limit is inclusive
     bin_next_state = f"{next_state:0{num_spins}b}"
     return bin_next_state
+
 
 ###########################################################################################
 ## VISUALISATIONS AND PLOTTING ##
@@ -416,7 +435,7 @@ def plot_bargraph_desc_order(
     desc_val_order_dict_in: dict,
     normalise_complete_data: bool = False,
     plot_first_few: int = -1,
-    **bar_kwargs
+    **bar_kwargs,
 ):
     width = 1.0
     list_keys = list(desc_val_order_dict_in.keys())
@@ -463,18 +482,22 @@ def plot_multiple_bargraphs(
         df[:plot_first_few].plot.bar(rot=90, figsize=figsize)
 
 
-def plot_hamming_distance_statistics(trajectory_stat_list: list, nspin: int, labels: list, figsize= (16,8) ):
+def plot_hamming_distance_statistics(
+    trajectory_stat_list: list, nspin: int, labels: list, figsize=(16, 8)
+):
 
-    
+    plt.figure(figsize=figsize)
 
-    plt.figure(figsize= figsize)
-
-    bins = np.arange(0, nspin+1)
+    bins = np.arange(0, nspin + 1)
     alpha = 0.3
     for item in zip(trajectory_stat_list, labels):
 
         alpha += (0.7) / len(trajectory_stat_list)
-        plt.bar(*np.unique(item[0]['hamming'], return_counts=True),label= item[1] ,alpha= alpha)
+        plt.bar(
+            *np.unique(item[0]["hamming"], return_counts=True),
+            label=item[1],
+            alpha=alpha,
+        )
 
     # plt.xscale("log")
 
@@ -483,136 +506,167 @@ def plot_hamming_distance_statistics(trajectory_stat_list: list, nspin: int, lab
     plt.legend()
     plt.show()
 
-def plot_acceptance_prob_statistics(trajectory_stat_list: list, labels: list, figsize= (15,7)):
 
-    plt.figure(figsize= figsize)
+def plot_acceptance_prob_statistics(
+    trajectory_stat_list: list, labels: list, figsize=(15, 7)
+):
+
+    plt.figure(figsize=figsize)
 
     lcomp = []
-    for tl in trajectory_stat_list: 
-        lcomp.append( np.min(tl['acceptance_prob']) )
+    for tl in trajectory_stat_list:
+        lcomp.append(np.min(tl["acceptance_prob"]))
 
-    bins = np.linspace(np.log10(np.min(lcomp))-0.1, 0, num=30)
+    bins = np.linspace(np.log10(np.min(lcomp)) - 0.1, 0, num=30)
 
     alpha = 0.3
-    
+
     for item in zip(trajectory_stat_list, labels):
-        
+
         alpha += (0.7) / len(trajectory_stat_list)
-        plt.hist(np.log10(item[0]['acceptance_prob']), label= item[1], alpha = alpha, bins= bins, density= True)
+        plt.hist(
+            np.log10(item[0]["acceptance_prob"]),
+            label=item[1],
+            alpha=alpha,
+            bins=bins,
+            density=True,
+        )
     plt.xlabel("Acceptance Probabilities | scale: log10")
     plt.ylabel("Normalized Counts")
     plt.legend()
     plt.show()
 
+
 # this function would be useful for plotting curves
-def plot_with_error_band(xval:list,y_list_of_list:list,label:str,
-                            std_dev_multiplicative_factor:int=0.5,
-                            alpha_for_plot:float=0.5):
-# for i, data in dict_mcmc_bas_gridsize_3.items():
-#     print(i)
-#     keys = list(data.keys())
-#     for type in keys:
-#         print(type)
-#         print(name_replacement[type])
-#         data[name_replacement[type]] = data.pop(type)
-        
-# name_replacement = {'cl': 'cl-uniform', 'local': 'cl-local-wt1', 'Q-MCMC:pauli_wt_1': 'qu-wt1', 'Q-MCMC:pauli_wt_3': 'qu-wt3', 'local_wt_3': 'cl-local-wt3'}
-    curve_of_mean_value=np.mean(y_list_of_list,axis=0)
-    standard_dev_band=np.std(y_list_of_list,axis=0)
-    plt.plot(xval,curve_of_mean_value,"-",label=label)
-    plt.fill_between(xval,
-                        curve_of_mean_value-standard_dev_band* std_dev_multiplicative_factor,
-                        curve_of_mean_value+standard_dev_band* std_dev_multiplicative_factor,
-                        alpha=alpha_for_plot)
+def plot_with_error_band(
+    xval: list,
+    y_list_of_list: list,
+    label: str,
+    std_dev_multiplicative_factor: int = 0.5,
+    alpha_for_plot: float = 0.5,
+):
+    # for i, data in dict_mcmc_bas_gridsize_3.items():
+    #     print(i)
+    #     keys = list(data.keys())
+    #     for type in keys:
+    #         print(type)
+    #         print(name_replacement[type])
+    #         data[name_replacement[type]] = data.pop(type)
 
-def plot_mcmc_iterations(DATA) :
+    # name_replacement = {'cl': 'cl-uniform', 'local': 'cl-local-wt1', 'Q-MCMC:pauli_wt_1': 'qu-wt1', 'Q-MCMC:pauli_wt_3': 'qu-wt3', 'local_wt_3': 'cl-local-wt3'}
+    curve_of_mean_value = np.mean(y_list_of_list, axis=0)
+    standard_dev_band = np.std(y_list_of_list, axis=0)
+    plt.plot(xval, curve_of_mean_value, "-", label=label)
+    plt.fill_between(
+        xval,
+        curve_of_mean_value - standard_dev_band * std_dev_multiplicative_factor,
+        curve_of_mean_value + standard_dev_band * std_dev_multiplicative_factor,
+        alpha=alpha_for_plot,
+    )
+
+
+def plot_mcmc_iterations(DATA):
     mcmc_types = list(DATA.keys())
-    iter_begin = 100; iter_end = -1
-    dim1 = int(len(mcmc_types)/2)+1; dim2 = 2
+    iter_begin = 100
+    iter_end = -1
+    dim1 = int(len(mcmc_types) / 2) + 1
+    dim2 = 2
 
-    plt.figure(figsize=(40,25))
-    for j in range(1, len(mcmc_types)+1):
+    plt.figure(figsize=(40, 25))
+    for j in range(1, len(mcmc_types) + 1):
         # print(j)
         plt.subplot(dim1, dim2, j)
-        plt.plot(DATA[mcmc_types[j-1]].markov_chain[iter_begin: iter_end] )
-        plt.title(mcmc_types[j-1])
+        plt.plot(DATA[mcmc_types[j - 1]].markov_chain[iter_begin:iter_end])
+        plt.title(mcmc_types[j - 1])
 
         # plt.legend()
     plt.show()
+
+
 ###########################################################################################
 ## BAS Datasets ##
 ###########################################################################################
 
 from itertools import permutations, product
+
+
 class bas_dataset:
-    def __init__(self, grid_size:int):
-        self.grid_size=grid_size
-        all_combn=[''.join(p) for p in product('01',repeat=self.grid_size)]
-        all_combn.sort(key=lambda s: s.count('1'))
-        all_combn.pop(0);all_combn.pop(-1)
-        self.__all_combn=all_combn
-        self.bas_dict=self.bars_and_stripes_dataset()
-        self.dataset= self.bas_dict['stripes']+self.bas_dict['bars'] + self.bas_dict.get("both", [])
-    
+    def __init__(self, grid_size: int):
+        self.grid_size = grid_size
+        all_combn = ["".join(p) for p in product("01", repeat=self.grid_size)]
+        all_combn.sort(key=lambda s: s.count("1"))
+        all_combn.pop(0)
+        all_combn.pop(-1)
+        self.__all_combn = all_combn
+        self.bas_dict = self.bars_and_stripes_dataset()
+        self.dataset = (
+            self.bas_dict["stripes"]
+            + self.bas_dict["bars"]
+            + self.bas_dict.get("both", [])
+        )
+
     def vertical_stripes(self):
-        vert_stripes=[j*self.grid_size for j in self.__all_combn]
+        vert_stripes = [j * self.grid_size for j in self.__all_combn]
         return vert_stripes
 
     def horizontal_bars(self):
-        hor_bars=[]
+        hor_bars = []
         for l in self.__all_combn:
-            st=""
+            st = ""
             for j in l:
-                st=st+j*self.grid_size
+                st = st + j * self.grid_size
             hor_bars.append(st)
         return hor_bars
 
     def bars_and_stripes_dataset(self):
-        bas_dict={'stripes':self.vertical_stripes(),
-                  'bars':self.horizontal_bars(),
-                  # "both": ["0"*self.grid_size*self.grid_size, "1"*self.grid_size*self.grid_size]
-                 }
+        bas_dict = {
+            "stripes": self.vertical_stripes(),
+            "bars": self.horizontal_bars(),
+            # "both": ["0"*self.grid_size*self.grid_size, "1"*self.grid_size*self.grid_size]
+        }
         return bas_dict
 
     ### create matrix of bitstring: meant for plotting
-    def bit_string_to_2d_matrix(self,bitstring, array_shape:int):
-        len_bs=len(bitstring)
-        list_bs_int=[eval(i) for i in list(bitstring)]
-        arr_bs=np.reshape(list_bs_int,(array_shape, array_shape))
+    def bit_string_to_2d_matrix(self, bitstring, array_shape: int):
+        len_bs = len(bitstring)
+        list_bs_int = [eval(i) for i in list(bitstring)]
+        arr_bs = np.reshape(list_bs_int, (array_shape, array_shape))
         return arr_bs
 
     ### plot pixels
-    def draw_pixelplot(self,bitstring:str,array_shape:int):
-        im_array=self.bit_string_to_2d_matrix(bitstring,array_shape)
+    def draw_pixelplot(self, bitstring: str, array_shape: int):
+        im_array = self.bit_string_to_2d_matrix(bitstring, array_shape)
         plt.title(f"pixel plot for bitstring: {bitstring}")
-        pixel_plot=plt.imshow(im_array,cmap='Greens',interpolation='nearest')
+        pixel_plot = plt.imshow(im_array, cmap="Greens", interpolation="nearest")
         plt.colorbar(pixel_plot)
         plt.show()
 
-def hebbing_learning(list_bas_state:list):
-    size=len(list_bas_state[0])
-    wts=0
+
+def hebbing_learning(list_bas_state: list):
+    size = len(list_bas_state[0])
+    wts = 0
     for i in list_bas_state:
-        arr=np.array([-1 if elem == "0" else 1 for elem in i])
-        array=np.reshape(arr,(size,1));array_t=np.transpose(array)
-        wts+=array@array_t
-    wts=wts-len(list_bas_state)*np.identity(size)
+        arr = np.array([-1 if elem == "0" else 1 for elem in i])
+        array = np.reshape(arr, (size, 1))
+        array_t = np.transpose(array)
+        wts += array @ array_t
+    wts = wts - len(list_bas_state) * np.identity(size)
     return wts
+
 
 def get_cardinality_dataset(n_qubits, card=2):
     def generate_binary_strings(bit_count):
         binary_strings = []
-        def genbin(n, bs=''):
+
+        def genbin(n, bs=""):
             if len(bs) == n:
                 binary_strings.append(bs)
             else:
-                genbin(n, bs + '0')
-                genbin(n, bs + '1')
+                genbin(n, bs + "0")
+                genbin(n, bs + "1")
 
         genbin(bit_count)
         return binary_strings
 
     binary_strings = generate_binary_strings(n_qubits)
-    return [b for b in binary_strings if b.count("1")==card]
-
-
+    return [b for b in binary_strings if b.count("1") == card]
