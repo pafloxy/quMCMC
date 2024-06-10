@@ -96,7 +96,7 @@ def cd_h(
 
 
 # @dataclass
-class cd_training:
+class CDTraining:
     """
     model: initial model = (J init, h init) at some temp T
     beta: 1/Temperature

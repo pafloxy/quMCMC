@@ -1,11 +1,14 @@
 ###################
 # from dataclasses import dataclass 
 from .energy_models import IsingEnergyFunction
-from typing import Optional
-from abc import ABC, abstractmethod, abstractproperty
+from .classical_mixers import ClassicalMixer
+from .mixers import Mixer 
+from .classical_mcmc_routines import classical_mcmc
+from .quantum_mcmc_routines import quantum_enhanced_mcmc 
 
 from dataclasses import dataclass
-
+from typing import Optional
+from abc import ABC, abstractmethod, abstractproperty
 ###################
 # @dataclass
 class MCMCSampler(ABC) :
@@ -34,8 +37,6 @@ class MCMCSampler(ABC) :
     
 
 ## wrapper class for running classical_mcmc() 
-from .mcmc_sampler_base import MCMCSampler
-@dataclass
 class ClassicalMCMCSampler(MCMCSampler) : 
     
     def __init__(self, 
@@ -64,8 +65,6 @@ class ClassicalMCMCSampler(MCMCSampler) :
 
 ## wrapper class for running quantum_enhanced_mcmc() 
 
-from .mcmc_sampler_base import MCMCSampler
-@dataclass
 class QuantumMCMCSampler(MCMCSampler) : 
 
     def __init__(self,
