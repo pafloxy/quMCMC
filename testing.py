@@ -4,14 +4,15 @@ import qumcmc
 from qumcmc.basic_utils import *
 from qumcmc.energy_models import IsingEnergyFunction, Exact_Sampling
 
-from qumcmc.classical_mcmc_routines import classical_mcmc, clmcmc_sampler
-from qumcmc.quantum_mcmc_routines import quantum_enhanced_mcmc, qumcmc_sampler # Manuel's code
+from qumcmc.classical_mcmc_routines import classical_mcmc 
+from qumcmc.quantum_mcmc_routines import quantum_enhanced_mcmc # Manuel's code
 # from qumcmc.trajectory_processing import calculate_running_js_divergence, calculate_running_kl_divergence, calculate_runnning_magnetisation, get_trajectory_statistics
 from qumcmc.prob_dist import DiscreteProbabilityDistribution
 ### let's check if the new code is even working as desired or not
 from qumcmc.mixers import * #,GenericMixer, CustomMixer, CoherentMixerSum, IncoherentMixerSum
 from qumcmc.classical_mixers import *
-from qumcmc.training import cd_training
+from qumcmc.training import CDTraining
+from qumcmc.mcmc_sampler_base import MCMCSampler, QuantumMCMCSampler, ClassicalMCMCSampler
 ######################################################################################
 gridsize=3
 
@@ -83,7 +84,7 @@ cmxrs = [unfrm_clmixer, fxdwt_clmixer, cstm_clmixer, combined_clmixer]
 
 random_model = IsingEnergyFunction(np.random.randn(n_spins, n_spins), np.random.randn(n_spins), name = f'RandomModel|N={n_spins}' )
 
-training_inst = cd_training(random_model, 1.0, bpd_2, name = "Train")
+training_inst = CDTraining(random_model, 1.0, bpd_2, name = "Train")
 
 # training_inst.train()
 
@@ -96,7 +97,7 @@ training_inst = cd_training(random_model, 1.0, bpd_2, name = "Train")
 # print("--------------------------- \n")
 for mxr in qmxrs :
     print(f"testing {mxr} ------------")     
-    quantum_mcmc = qumcmc_sampler(10, model, mxr, 0.5, initial_state=initial_state, verbose= True)
+    quantum_mcmc = QuantumMCMCSampler(10, model, mxr, 0.5, initial_state=initial_state, verbose= True)
     quantum_mcmc.run()
     print(f" MCMC run : OK ------------")     
     quantum_mcmc.verbose = False 
@@ -106,7 +107,7 @@ for mxr in qmxrs :
 print("--------------------------- \n")
 for mxr in cmxrs : 
     print(f"testing {mxr} ------------")     
-    clmcmc = clmcmc_sampler(10, model, mxr, initial_state=initial_state, verbose= True)
+    clmcmc = ClassicalMCMCSampler(10, model, mxr, initial_state=initial_state, verbose= True)
     clmcmc.run()
     print(f" MCMC run : OK ------------")   
     clmcmc.verbose = False   

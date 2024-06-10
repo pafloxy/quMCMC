@@ -71,7 +71,7 @@ class QuantumMCMCSampler(MCMCSampler) :
         n_hops: int ,
         model: IsingEnergyFunction,
         mixer: Mixer,
-        gamma: GammaType,
+        gamma: float,
         initial_state: Optional[str] = None,
         temperature: float = 1,
         delta_time=0.8,

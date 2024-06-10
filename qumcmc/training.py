@@ -14,8 +14,12 @@ import random
 from .basic_utils import *
 from .prob_dist import DiscreteProbabilityDistribution, kl_divergence, vectoried_KL
 from .energy_models import IsingEnergyFunction, Exact_Sampling, random_ising_model
-from .classical_mcmc_routines import clmcmc_sampler, classical_mcmc
-from .quantum_mcmc_routines import qumcmc_sampler, quantum_enhanced_mcmc  # for qulacs Simulator backend
+from .mcmc_sampler_base import MCMCSampler, QuantumMCMCSampler, ClassicalMCMCSampler
+
+# from .classical_mcmc_routines import classical_mcmc
+# from .quantum_mcmc_routines import  quantum_enhanced_mcmc  # for qulacs Simulator backend
+
+
 
 # from .quantum_mcmc_routines_qulacs import quantum_enhanced_mcmc   #for qiskit Aer's Simulator backend
 # from .trajectory_processing import (
@@ -154,7 +158,7 @@ class CDTraining:
 
     def _train_on_mcmc_chain(
         self,
-        mcmc_sampler: Union[clmcmc_sampler, qumcmc_sampler],
+        mcmc_sampler: Union[ClassicalMCMCSampler, QuantumMCMCSampler],
         lr: float = 0.01,
         mcmc_steps: int = 1000,
         update_strategy=["all", []],
@@ -300,7 +304,7 @@ class CDTraining:
 
     def train(
         self,
-        mcmc_sampler : Union[clmcmc_sampler, qumcmc_sampler],
+        mcmc_sampler : Union[ClassicalMCMCSampler, QuantumMCMCSampler],
         mcmc_steps: int = 500,
         lr: float = 0.01,
         # mcmc_settings={"mcmc_type": "quantum-enhanced", "mixer": [[["random", 1]], []]},
