@@ -18,10 +18,8 @@ from .basic_utils import (
 )
 from .classical_mixers import ClassicalMixer, UniformProposals
 
-from abc import ABC, abstractmethod
 from typing import List
 
-from dataclasses import dataclass
 ###########################################################################################
 ## CLASSICAL MCMC ROUTINES ##
 ###########################################################################################
@@ -101,100 +99,3 @@ def classical_mcmc(
     return mcmc_chain
 
 ####
-## decorator class for running classical_mcmc() 
-from .mcmc_sampler_base import mcmc_sampler
-@dataclass
-class clmcmc_sampler(mcmc_sampler) : 
-    
-    def __init__(self, 
-        n_hops: int ,
-        model: IsingEnergyFunction,
-        proposition_method: ClassicalMixer,
-        initial_state: Optional[str] = None,
-        temperature: float = 1,
-        verbose: bool = False,
-        name: str = "Cl-MCMC") -> None :  
-        
-        self.proposition_method = proposition_method
-        super().__init__(n_hops, model, initial_state, temperature, verbose, name)
-
-    def __repr__(self):
-        return f"Classical MCMCSampler: {self.name} \n ------------------- Iterations : {self.n_hops} \n Model : {self.model} \n PropositionType : {self.proposition_method} \n initial-state : {self.initial_state} \ntemp : {self.temperature}" 
-        # pass 
-    def run(self): 
-        return classical_mcmc(n_hops= self.n_hops ,
-                                     model= self.model , 
-                                     proposition_method= self.proposition_method ,
-                                     initial_state= self.initial_state , 
-                                     temperature= self.temperature ,                                      
-                                     verbose= self.verbose , 
-                                     name = self.name)
-
-# class ClassicalMixer(ABC):
-    
-#     def __init__(self, num_spins: int) -> None:
-#         self.num_spins = num_spins
-#         # self.current_state = current_state
-#         self._precompute_properties()
-
-#     @abstractmethod
-#     def propose_transition(self): ...
-
-#     def _precompute_properties(self):
-#         pass
-
-# class UniformProposals(ClassicalMixer):
-
-#     def _init_(self, num_spins:int) -> None: 
-#         super().__init__(num_spins)
-
-#     def propose_transition(self):
-#         return get_random_state(self.num_spins)
-
-# class FixedWeightProposals(ClassicalMixer):
-
-#     def __init__(self, num_spins: int, bodyness: int, current_state: str ) -> None:
-#         self.bodyness = bodyness
-#         self.current_state = current_state
-
-#         assert self.bodyness <= self.num_spins , "Incorrect"
-        
-#         super().__init__(num_spins)
-        
-#     def propose_transition(self):
-#         rbstr = random_bstr(self.num_spins, self.bodyness)
-#         return xor_strings(self.current_state, rbstr)
-
-# class CustomProposals(ClassicalMixer):
-
-#     def __init__(self, num_spins: int, flip_pattern: List[int], current_state: str) -> None:
-#         self.flip_pattern =flip_pattern
-#         self.current_state = current_state
-#         super().__init__(num_spins)
-
-#     def propose_transition(self):
-#         rbstr = ''
-#         __ = [ '1' if i in self.flip_pattern else '0' for i in range(self.num_spins)]
-#         for _ in __ : rbstr += _ 
-#         return xor_strings(self.current_state, rbstr)
-    
-# class CombineProposals(ClassicalMixer):
-
-#     def __init__(self, proposal_methods: List[ClassicalMixer], probabilities: List[float], current_state: str) -> None:
-#         # super().__init__(num_spins) 
-#         self.num_spins = proposal_methods[0].num_spins
-#         assert all(
-#             self.num_spins == pm.num_spins for pm in proposal_methods
-#         ), "Mixers don't have the same number of qubits"
-#         assert len(probabilities) == len(
-#             proposal_methods
-#         ), "Length of list of mixers and probabilities is not equal" 
-
-#         self.probabilities = np.array(probabilities) / sum(probabilities)
-#         self.proposal_methods = proposal_methods
-#         self.current_state = current_state
-
-#         def propose_transition(self):
-#             proposal_method = np.random.choice(self.proposal_methods, p = self.probabilities)
-#             return proposal_method.propose_transition()
-#             # return 
