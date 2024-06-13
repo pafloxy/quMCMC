@@ -28,9 +28,9 @@ class GenericMixer(Mixer):
         self.bodyness = bodyness
         super().__init__(n_qubits)
 
-    def __repr__(self): 
+    def __repr__(self):
         return f" GenericMixer : \n ------------- \n num-qubits = {self.n_qubits } | bodyness = {self.bodyness}"
-    
+
     def get_mixer_circuit(self, gamma: float, delta_time: float):
 
         qc_evolution_under_mixer = QuantumCircuit(self.n_qubits)
@@ -82,10 +82,9 @@ class CustomMixer(Mixer):
         self.possible_qubit_combinations = possible_qubit_combinations
 
         self._precompute_properties()
-  
-    def __repr__(self): 
+
+    def __repr__(self):
         return f" GenericMixer : \n ------------- \n num-qubits = {self.n_qubits } \n -------- \n possible-qubit-combintations = {self.possible_qubit_combinations}"
-    
 
     def get_mixer_circuit(self, gamma, delta_time):
 
@@ -118,8 +117,10 @@ class CoherentMixerSum(Mixer):
         ), "Length of list of mixers and weights is not equal"
         self.mixers = mixers
         self.weights = np.array(weights) / sum(weights)
-    def __repr__(self): 
+
+    def __repr__(self):
         return f"CoherentMixerSum -> num_mixers : {len(self.mixers)} |  weights : {self.weights}"
+
     def get_mixer_circuit(self, gamma: float, delta_time: float):
         total_circuit = QuantumCircuit(self.n_qubits)
         for weight, mixer in zip(self.weights, self.mixers):
@@ -141,8 +142,10 @@ class IncoherentMixerSum(Mixer):
         ), "Length of list of mixers and probabilities is not equal"
         self.mixers = mixers
         self.probabilities = np.array(probabilities) / sum(probabilities)
-    def __repr__(self): 
+
+    def __repr__(self):
         return f"IncoherentMixerSum -> num_mixers : {len(self.mixers)} |  probabilities : {self.probabilities}"
+
     def get_mixer_circuit(self, gamma: float, delta_time: float):
         mixer = np.random.choice(self.mixers, p=self.probabilities)
         return mixer.get_mixer_circuit(gamma, delta_time)

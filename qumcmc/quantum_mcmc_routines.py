@@ -226,4 +226,5 @@ def quantum_enhanced_mcmc(
 
     return mcmc_chain
 
+
 ####

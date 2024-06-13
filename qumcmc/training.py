@@ -20,7 +20,6 @@ from .mcmc_sampler_base import MCMCSampler, QuantumMCMCSampler, ClassicalMCMCSam
 # from .quantum_mcmc_routines import  quantum_enhanced_mcmc  # for qulacs Simulator backend
 
 
-
 # from .quantum_mcmc_routines_qulacs import quantum_enhanced_mcmc   #for qiskit Aer's Simulator backend
 # from .trajectory_processing import (
 #     calculate_running_kl_divergence,
@@ -165,40 +164,19 @@ class CDTraining:
         save_gradient_info=False,
     ):  # we will try to increase mcmc steps.
 
-        # method = mcmc_settings["mcmc_type"]
-        # mixer = mcmc_settings["mixer"]
-
         # random.seed(random.random()) ## add seed to random ##TODO
-        initial_state = self.data_distribution.get_sample(1)[0]  ##randomly select a state from the data distribution
+        initial_state = self.data_distribution.get_sample(1)[
+            0
+        ]  ##randomly select a state from the data distribution
         mcmc_sampler.n_hops = mcmc_steps
         mcmc_sampler.initial_state = initial_state
-                
-        self.mcmc_chain = mcmc_sampler.run()
-        # if isinstance(mcmc_sampler, qumcmc_sampler):
-        # # if method == "quantum-enhanced":
-        #     # self.mcmc_chain = quantum_enhanced_mcmc(
-        #     #     n_hops=mcmc_steps,
-        #     #     name=method,
-        #     #     model=self.model,
-        #     #     initial_state=initialise_chain,
-        #     #     temperature=1 / self.model_beta,
-        #     #     mixer=mixer,
-        #     #     verbose=False,
-        #     # )
 
-        
-        # elif isinstance(mcmc_sampler, clmcmc_sampler):
-        # # elif method == "classical":
-        #     self.mcmc_chain = classical_mcmc(
-        #         n_hops=mcmc_steps,
-        #         name=method,
-        #         model=self.model,
-        #         initial_state=initialise_chain,
-        #         temperature=1 / self.model_beta,
-        #         proposition_method=mixer,
-        #         verbose=False,
-        #     )
-        max_grad_h =0 ; max_grad_J =0; min_grad_h=0 ; min_grad_J=0
+        self.mcmc_chain = mcmc_sampler.run()
+
+        max_grad_h = 0
+        max_grad_J = 0
+        min_grad_h = 0
+        min_grad_J = 0
         if update_strategy[0] == "random":  ## random update strategy ##
 
             ## just realised that even this is not a good thing!
@@ -213,8 +191,6 @@ class CDTraining:
             list_random_indices = random.sample(
                 range(0, self.model.num_spins), update_strategy[1]["num_random_bias"]
             )
-            # list_pair_of_indices=[[i,j] for i in range(1,self.model.num_spins) for j in range(i,self.model.num_spins) if j!=i]
-            # list_pair_of_different_indices=random.sample(self.list_pair_of_indices,k=update_strategy[1]['num_random_interactions'])
 
             list_pair_of_different_indices = [
                 [
@@ -304,7 +280,7 @@ class CDTraining:
 
     def train(
         self,
-        mcmc_sampler : Union[ClassicalMCMCSampler, QuantumMCMCSampler],
+        mcmc_sampler: Union[ClassicalMCMCSampler, QuantumMCMCSampler],
         mcmc_steps: int = 500,
         lr: float = 0.01,
         # mcmc_settings={"mcmc_type": "quantum-enhanced", "mixer": [[["random", 1]], []]},
@@ -341,7 +317,7 @@ class CDTraining:
         for epoch in iterator:
 
             self._train_on_mcmc_chain(
-                mcmc_sampler= mcmc_sampler,
+                mcmc_sampler=mcmc_sampler,
                 lr=lr,
                 mcmc_steps=mcmc_steps,
                 update_strategy=update_strategy,
