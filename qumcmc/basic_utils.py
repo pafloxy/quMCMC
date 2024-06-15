@@ -380,18 +380,6 @@ def int_to_str(state_obtained, nspin):
     return f"{state_obtained:0{nspin}b}"
 
 
-# def random_bstr(n,k=1):
-#     assert n >= k
-#     s = '1'*k + '0'*(n-k)
-#     perm = list(permutations(s))
-#     r = perm[np.random.randint(0, len(perm))]
-#     rnd_str = ''
-#     for i in r :
-#         rnd_str += i
-
-#     return rnd_str
-
-
 def random_bstr(n, k=1):
     assert n >= k
     s = "1" * k + "0" * (n - k)

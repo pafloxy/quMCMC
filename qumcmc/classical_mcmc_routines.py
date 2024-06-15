@@ -18,7 +18,6 @@ from .basic_utils import (
 )
 from .classical_mixers import ClassicalMixer, UniformProposals
 
-from abc import ABC, abstractmethod
 from typing import List
 
 ###########################################################################################
@@ -98,3 +97,6 @@ def classical_mcmc(
             energy_s = model.get_energy(current_state.bitstring)
 
     return mcmc_chain
+
+
+####

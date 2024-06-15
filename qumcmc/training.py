@@ -14,20 +14,23 @@ import random
 from .basic_utils import *
 from .prob_dist import DiscreteProbabilityDistribution, kl_divergence, vectoried_KL
 from .energy_models import IsingEnergyFunction, Exact_Sampling, random_ising_model
-from .classical_mcmc_routines import *
-from .quantum_mcmc_routines import *  # for qulacs Simulator backend
+from .mcmc_sampler_base import MCMCSampler, QuantumMCMCSampler, ClassicalMCMCSampler
+
+# from .classical_mcmc_routines import classical_mcmc
+# from .quantum_mcmc_routines import  quantum_enhanced_mcmc  # for qulacs Simulator backend
+
 
 # from .quantum_mcmc_routines_qulacs import quantum_enhanced_mcmc   #for qiskit Aer's Simulator backend
-from .trajectory_processing import (
-    calculate_running_kl_divergence,
-    calculate_runnning_magnetisation,
-    get_trajectory_statistics,
-)
+# from .trajectory_processing import (
+#     calculate_running_kl_divergence,
+#     calculate_runnning_magnetisation,
+#     get_trajectory_statistics,
+# )
 
-from qulacs import QuantumState
-from qulacs_core import DensityMatrix
+# from qulacs import QuantumState
+# from qulacs_core import DensityMatrix
 
-from qiskit.visualization import plot_histogram
+# from qiskit.visualization import plot_histogram
 
 ###########################################################################################
 ## HELPER FUNCTIONS ##
@@ -96,7 +99,7 @@ def cd_h(
 
 
 # @dataclass
-class cd_training:
+class CDTraining:
     """
     model: initial model = (J init, h init) at some temp T
     beta: 1/Temperature
@@ -154,42 +157,26 @@ class cd_training:
 
     def _train_on_mcmc_chain(
         self,
-        mcmc_settings,
+        mcmc_sampler: Union[ClassicalMCMCSampler, QuantumMCMCSampler],
         lr: float = 0.01,
         mcmc_steps: int = 1000,
         update_strategy=["all", []],
         save_gradient_info=False,
     ):  # we will try to increase mcmc steps.
 
-        method = mcmc_settings["mcmc_type"]
-        mixer = mcmc_settings["mixer"]
-
         # random.seed(random.random()) ## add seed to random ##TODO
-        initialise_chain = self.data_distribution.get_sample(1)[
+        initial_state = self.data_distribution.get_sample(1)[
             0
         ]  ##randomly select a state from the data distribution
+        mcmc_sampler.n_hops = mcmc_steps
+        mcmc_sampler.initial_state = initial_state
 
-        if method == "quantum-enhanced":
-            self.mcmc_chain = quantum_enhanced_mcmc_2(
-                n_hops=mcmc_steps,
-                name=method,
-                model=self.model,
-                initial_state=initialise_chain,
-                temperature=1 / self.model_beta,
-                mixer=mixer,
-                verbose=False,
-            )
-        elif method == "classical":
-            self.mcmc_chain = classical_mcmc(
-                n_hops=mcmc_steps,
-                name=method,
-                model=self.model,
-                initial_state=initialise_chain,
-                temperature=1 / self.model_beta,
-                proposition_method=mixer,
-                verbose=False,
-            )
+        self.mcmc_chain = mcmc_sampler.run()
 
+        max_grad_h = 0
+        max_grad_J = 0
+        min_grad_h = 0
+        min_grad_J = 0
         if update_strategy[0] == "random":  ## random update strategy ##
 
             ## just realised that even this is not a good thing!
@@ -204,8 +191,6 @@ class cd_training:
             list_random_indices = random.sample(
                 range(0, self.model.num_spins), update_strategy[1]["num_random_bias"]
             )
-            # list_pair_of_indices=[[i,j] for i in range(1,self.model.num_spins) for j in range(i,self.model.num_spins) if j!=i]
-            # list_pair_of_different_indices=random.sample(self.list_pair_of_indices,k=update_strategy[1]['num_random_interactions'])
 
             list_pair_of_different_indices = [
                 [
@@ -295,18 +280,19 @@ class cd_training:
 
     def train(
         self,
+        mcmc_sampler: Union[ClassicalMCMCSampler, QuantumMCMCSampler],
+        mcmc_steps: int = 500,
         lr: float = 0.01,
-        mcmc_settings={"mcmc_type": "quantum-enhanced", "mixer": [[["random", 1]], []]},
+        # mcmc_settings={"mcmc_type": "quantum-enhanced", "mixer": [[["random", 1]], []]},
         epochs: int = 10,
         update_strategy=["all", []],
-        mcmc_steps: int = 500,
         save_training_data={
             "kl_div": [True, "exact-sampling"],
             "max-min-gradient": True,
         },
         verbose=True,
     ):
-        """mcmc_settings : type of mcmc sampler to be used for sampling from the paramterised model
+        """mcmc_sampler : type of mcmc sampler to be used for sampling from the paramterised model
         update_strategy : chocie of the parameter update strategy
                          -> ['all' , []] : updates all paramters in the model
                          -> ['random', {'num_random_bias': , 'num_random_interactions':}] : randomly pick num_random_ias 'bias' and num_random_interaction 'interaction' paramaters
@@ -315,23 +301,23 @@ class cd_training:
         self.training_history["specifications"].append(
             {
                 "lr": lr,
-                "mcmc_settings": mcmc_settings,
+                "mcmc_settings": mcmc_sampler,
                 "epochs": epochs,
                 "update_strategy": update_strategy,
-                "mcmc_steps": mcmc_steps,
+                # "mcmc_steps": mcmc_steps,
             }
         )
         iterator = tqdm(range(epochs), desc="training epochs", disable=not verbose)
         iterator.set_postfix(
             {
-                "mcmc_type": mcmc_settings["mcmc_type"],
+                "mcmc_type": mcmc_sampler,
                 "update-strategy": update_strategy[0],
             }
         )
         for epoch in iterator:
 
             self._train_on_mcmc_chain(
-                mcmc_settings=mcmc_settings,
+                mcmc_sampler=mcmc_sampler,
                 lr=lr,
                 mcmc_steps=mcmc_steps,
                 update_strategy=update_strategy,
@@ -360,7 +346,7 @@ class cd_training:
 
                 iterator.set_postfix(
                     {
-                        "mcmc_type": mcmc_settings["mcmc_type"],
+                        "mcmc_type": mcmc_sampler,
                         "update-strategy": update_strategy[0],
                         "kl div ": self.training_history["kl_div"][-1],
                     }
