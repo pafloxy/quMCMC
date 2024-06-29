@@ -170,7 +170,8 @@ class CDTraining:
         ]  ##randomly select a state from the data distribution
         mcmc_sampler.n_hops = mcmc_steps
         mcmc_sampler.initial_state = initial_state
-
+        mcmc_sampler.model = self.model
+        
         self.mcmc_chain = mcmc_sampler.run()
 
         max_grad_h = 0
