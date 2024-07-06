@@ -54,6 +54,10 @@ class IsingEnergyFunction:
     def __repr__(self):
         return f"Ising Model:{self.name}| num-spins: {self.num_spins}"
 
+    def __eq__(self, other: object) -> bool:
+        return (self.J == other.J).all() and (self.h == other.h).all() 
+   
+
     @property
     def get_J(self):
         return self.J
