@@ -302,7 +302,7 @@ class CDTraining:
         self.training_history["specifications"].append(
             {
                 "lr": lr,
-                "mcmc_settings": mcmc_sampler,
+                "sampler": mcmc_sampler,
                 "epochs": epochs,
                 "update_strategy": update_strategy,
                 # "mcmc_steps": mcmc_steps,
@@ -311,7 +311,7 @@ class CDTraining:
         iterator = tqdm(range(epochs), desc="training epochs", disable=not verbose)
         iterator.set_postfix(
             {
-                "mcmc_type": mcmc_sampler,
+                "sampler": mcmc_sampler.name,
                 "update-strategy": update_strategy[0],
             }
         )
@@ -347,7 +347,7 @@ class CDTraining:
 
                 iterator.set_postfix(
                     {
-                        "mcmc_type": mcmc_sampler,
+                        "sampler": mcmc_sampler.name,
                         "update-strategy": update_strategy[0],
                         "kl div ": self.training_history["kl_div"][-1],
                     }
