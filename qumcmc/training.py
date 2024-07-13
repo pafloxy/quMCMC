@@ -9,6 +9,7 @@ import pandas as pd
 from typing import Union
 import seaborn as sns
 import random
+import pickle as pkl
 
 # import
 from .basic_utils import *
@@ -114,6 +115,7 @@ class CDTraining:
         beta: float,
         data_dist: DiscreteProbabilityDistribution,
         name: str = "train",
+        pickle_loc: Union[None, str] = None
     ) -> None:
         self.model = deepcopy(model)
         self.model_beta = beta
@@ -131,6 +133,7 @@ class CDTraining:
             if j != i
         ]
         self.name = name
+        self.pickle_fileloc = pickle_loc
 
     def cd_J(self, index, mcmc_chain: MCMCChain):
 
@@ -292,6 +295,7 @@ class CDTraining:
             "max-min-gradient": True,
         },
         verbose=True,
+        save_picle:bool = False
     ):
         """mcmc_sampler : type of mcmc sampler to be used for sampling from the paramterised model
         update_strategy : chocie of the parameter update strategy
@@ -352,7 +356,12 @@ class CDTraining:
                         "kl div ": self.training_history["kl_div"][-1],
                     }
                 )
-
+        if save_picle: 
+            if self.pickle_fileloc:
+                with open(self.pickle_fileloc, 'wb') as f : 
+                    pkl.dump(self, f)
+            else: 
+                raise ValueError(f"{self.pickle_fileloc} must be .pkl file")
         ## update training data ##
         # self.kl_div += kl_div
         # self.training_history['kl_div']= self.kl_div
