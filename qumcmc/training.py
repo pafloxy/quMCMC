@@ -15,7 +15,7 @@ import pickle as pkl
 from .basic_utils import *
 from .prob_dist import DiscreteProbabilityDistribution, kl_divergence, vectoried_KL
 from .energy_models import IsingEnergyFunction, Exact_Sampling, random_ising_model
-from .mcmc_sampler_base import MCMCSampler, QuantumMCMCSampler, ClassicalMCMCSampler
+from .mcmc_sampler_base import MCMCSampler, QuantumMCMCSampler, ClassicalMCMCSampler, ExactSampler
 
 # from .classical_mcmc_routines import classical_mcmc
 # from .quantum_mcmc_routines import  quantum_enhanced_mcmc  # for qulacs Simulator backend
@@ -40,19 +40,6 @@ from .mcmc_sampler_base import MCMCSampler, QuantumMCMCSampler, ClassicalMCMCSam
 int_to_binary = lambda state_obtained, n_spins: f"{state_obtained:0{n_spins}b}"
 binary_to_bipolar = lambda string: 2.0 * float(string) - 1.0
 
-
-def get_observable_expectation(
-    observable: callable, mcmc_chain: MCMCChain, skip_init: int = 100
-):
-
-    sample_observable = []
-    for s in mcmc_chain.accepted_states:
-
-        sample_observable.append(observable(s))
-
-    sample_observable = np.array(sample_observable)
-
-    return sample_observable.mean(dtype=float)  # , sample_observable.var(dtype= float)
 
 
 def correlation_spins(state: str, indices: Union[tuple, List]):
@@ -135,52 +122,52 @@ class CDTraining:
         self.name = name
         self.pickle_fileloc = pickle_loc
 
-    def cd_J(self, index, mcmc_chain: MCMCChain):
+    def cd_J(self, index, sampler: Union[MCMCSampler, ExactSampler]):
 
         assert len(index) == 2
         observable = lambda s: correlation_spins(s, [index[0], index[1]])
         r = self.data_distribution.get_observable_expectation(
             observable
-        ) - get_observable_expectation(observable, mcmc_chain, skip_init=100)
+        ) - sampler.get_observable_expectation(observable)
 
         return r
 
-    def cd_h(self, index: int, mcmc_chain: MCMCChain):
+    def cd_h(self, index: int, sampler: Union[MCMCSampler, ExactSampler]):
 
         assert isinstance(index, int)
         observable = lambda s: correlation_spins(s, [index])
         r = self.data_distribution.get_observable_expectation(
             observable
-        ) - get_observable_expectation(observable, mcmc_chain, skip_init=100)
+        ) - sampler.get_observable_expectation(observable)
 
         return r
 
     # @setattr
     # def data_distribution()
 
-    def _train_on_mcmc_chain(
+    def _train_aux(
         self,
-        mcmc_sampler: Union[ClassicalMCMCSampler, QuantumMCMCSampler],
+        sampler: Union[ClassicalMCMCSampler, QuantumMCMCSampler, ExactSampler],
         lr: float = 0.01,
         mcmc_steps: int = 1000,
         update_strategy=["all", []],
         save_gradient_info=False,
     ):  # we will try to increase mcmc steps.
 
+        sampler.model = self.model
         # random.seed(random.random()) ## add seed to random ##TODO
-        initial_state = self.data_distribution.get_sample(1)[
-            0
-        ]  ##randomly select a state from the data distribution
-        mcmc_sampler.n_hops = mcmc_steps
-        mcmc_sampler.initial_state = initial_state
-        mcmc_sampler.model = self.model
-        
-        self.mcmc_chain = mcmc_sampler.run()
+        if not isinstance(sampler, ExactSampler):
 
-        max_grad_h = 0
-        max_grad_J = 0
-        min_grad_h = 0
-        min_grad_J = 0
+            initial_state = self.data_distribution.get_sample(1)[
+                0
+            ]  ##randomly select a state from the data distribution
+            sampler.n_hops = mcmc_steps
+            sampler.initial_state = initial_state
+        
+        sampler.run()
+
+        max_grad_h = 0;        max_grad_J = 0
+        min_grad_h = 0;        min_grad_J = 0
         if update_strategy[0] == "random":  ## random update strategy ##
 
             ## just realised that even this is not a good thing!
@@ -211,7 +198,7 @@ class CDTraining:
             for k in range(len(list_pair_of_different_indices)):
 
                 indices_J = list_pair_of_different_indices[k]
-                calculate_cd_J = self.cd_J(indices_J, self.mcmc_chain)
+                calculate_cd_J = self.cd_J(indices_J, sampler)
                 updated_param_j = (
                     self.model.J[indices_J[0], indices_J[1]] - lr * calculate_cd_J
                 )
@@ -230,7 +217,7 @@ class CDTraining:
             for k in range(update_strategy[1]["num_random_bias"]):
 
                 index_h = list_random_indices[k]
-                calculate_cd_h = self.cd_h(index_h, self.mcmc_chain)
+                calculate_cd_h = self.cd_h(index_h, sampler)
                 updated_param_h = self.model.h[index_h] - lr * calculate_cd_h
                 self.model._update_h(updated_param_h, index_h)
 
@@ -253,7 +240,7 @@ class CDTraining:
             for i in range(0, self.model.num_spins):
                 for j in range(0, i):
 
-                    calculate_cd_J = self.cd_J([i, j], self.mcmc_chain)
+                    calculate_cd_J = self.cd_J([i, j], sampler)
                     updated_param_j = self.model.J[i, j] - lr * calculate_cd_J
                     self.model._update_J(updated_param_j, [i, j])
                     if save_gradient_info:
@@ -265,7 +252,7 @@ class CDTraining:
                         if np.abs(calculate_cd_J) < min_grad_J:
                             min_grad_J = np.abs(calculate_cd_J)
 
-                calculate_cd_h = self.cd_h(i, self.mcmc_chain)
+                calculate_cd_h = self.cd_h(i, sampler)
                 updated_param_h = self.model.h[i] - lr * calculate_cd_h
                 self.model._update_h(updated_param_h, i)
                 if save_gradient_info:
@@ -284,7 +271,7 @@ class CDTraining:
 
     def train(
         self,
-        mcmc_sampler: Union[ClassicalMCMCSampler, QuantumMCMCSampler],
+        sampler: Union[ClassicalMCMCSampler, QuantumMCMCSampler, ExactSampler],
         mcmc_steps: int = 500,
         lr: float = 0.01,
         # mcmc_settings={"mcmc_type": "quantum-enhanced", "mixer": [[["random", 1]], []]},
@@ -297,7 +284,7 @@ class CDTraining:
         verbose=True,
         save_picle:bool = False
     ):
-        """mcmc_sampler : type of mcmc sampler to be used for sampling from the paramterised model
+        """sampler : type of mcmc sampler to be used for sampling from the paramterised model
         update_strategy : chocie of the parameter update strategy
                          -> ['all' , []] : updates all paramters in the model
                          -> ['random', {'num_random_bias': , 'num_random_interactions':}] : randomly pick num_random_ias 'bias' and num_random_interaction 'interaction' paramaters
@@ -306,7 +293,7 @@ class CDTraining:
         self.training_history["specifications"].append(
             {
                 "lr": lr,
-                "sampler": mcmc_sampler,
+                "sampler": sampler,
                 "epochs": epochs,
                 "update_strategy": update_strategy,
                 # "mcmc_steps": mcmc_steps,
@@ -315,14 +302,14 @@ class CDTraining:
         iterator = tqdm(range(epochs), desc="training epochs", disable=not verbose)
         iterator.set_postfix(
             {
-                "sampler": mcmc_sampler.name,
+                "sampler": sampler.name,
                 "update-strategy": update_strategy[0],
             }
         )
         for epoch in iterator:
 
-            self._train_on_mcmc_chain(
-                mcmc_sampler=mcmc_sampler,
+            self._train_aux(
+                sampler=sampler,
                 lr=lr,
                 mcmc_steps=mcmc_steps,
                 update_strategy=update_strategy,
@@ -351,7 +338,7 @@ class CDTraining:
 
                 iterator.set_postfix(
                     {
-                        "sampler": mcmc_sampler.name,
+                        "sampler": sampler.name,
                         "update-strategy": update_strategy[0],
                         "kl div ": self.training_history["kl_div"][-1],
                     }
