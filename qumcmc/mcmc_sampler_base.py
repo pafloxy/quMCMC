@@ -1,14 +1,31 @@
 ###################
 # from dataclasses import dataclass
-from .energy_models import IsingEnergyFunction
+from .energy_models import IsingEnergyFunction, Exact_Sampling
 from .classical_mixers import ClassicalMixer
 from .mixers import Mixer
 from .classical_mcmc_routines import classical_mcmc
 from .quantum_mcmc_routines import quantum_enhanced_mcmc
+from .basic_utils import observable_expectation
 
 from dataclasses import dataclass
 from typing import Optional
 from abc import ABC, abstractmethod, abstractproperty
+
+###################
+class ExactSampler(Exact_Sampling):
+    def __init__(self, model: IsingEnergyFunction, temperature: float = 1.0, verbose=False, name= 'EXACT') -> None:
+        self.model = model
+        self.num_spins = model.num_spins 
+        self.temperature = temperature
+        self.verbose = verbose
+        self.name = name
+    
+    def __repr__(self):
+        return super().__repr__()
+    
+    def run(self):
+        super().__init__(self.model, 1/self.temperature, self.verbose)
+        self.run_exact_sampling(1/self.temperature, verbose= self.verbose)
 
 
 ###################
@@ -36,7 +53,11 @@ class MCMCSampler(ABC):
         return f" MCMCSampler:{self.name}| model:{self.model}"
 
     @abstractmethod
-    def run(self): ...
+    def run(self, save_mcmc:bool= True): ...
+
+    @abstractmethod
+    def get_observable_expectation(observable: callable, skip_init:int= 100): ...
+        
 
 
 ## wrapper class for running classical_mcmc()
@@ -60,8 +81,8 @@ class ClassicalMCMCSampler(MCMCSampler):
         return f"Classical MCMCSampler: {self.name} \n ------------------- Iterations : {self.n_hops} \n Model : {self.model} \n PropositionType : {self.proposition_method} \n initial-state : {self.initial_state} \ntemp : {self.temperature}"
         # pass
 
-    def run(self):
-        return classical_mcmc(
+    def run(self, save_mcmc:bool= True):
+        mcmc = classical_mcmc(
             n_hops=self.n_hops,
             model=self.model,
             proposition_method=self.proposition_method,
@@ -71,6 +92,15 @@ class ClassicalMCMCSampler(MCMCSampler):
             name=self.name,
         )
 
+        if save_mcmc:
+            self.mcmc = mcmc
+        return mcmc 
+    
+    def get_observable_expectation(self, observable: callable, skip_init:int= 100): 
+        if self.mcmc : 
+            return observable_expectation(observable, self.mcmc, skip_init)
+        else :
+            raise ValueError(f"No saved MCMC, set 'save_mcmc= True' in '{self}.run()'")
 
 ## wrapper class for running quantum_enhanced_mcmc()
 
@@ -100,8 +130,8 @@ class QuantumMCMCSampler(MCMCSampler):
         return f"Quantum MCMCSampler: {self.name} \n ------------------- Iterations : {self.n_hops} \n Model : {self.model} \n Mixer : {self.mixer} \n initial-state : {self.initial_state} \ngamma : {self.gamma} | temp : {self.temperature} | evolution-time : {self.delta_time}\n  "
         # pass
 
-    def run(self):
-        return quantum_enhanced_mcmc(
+    def run(self, save_mcmc:bool= True):
+        mcmc = quantum_enhanced_mcmc(
             n_hops=self.n_hops,
             model=self.model,
             mixer=self.mixer,
@@ -112,3 +142,13 @@ class QuantumMCMCSampler(MCMCSampler):
             verbose=self.verbose,
             name=self.name,
         )
+
+        if save_mcmc:
+            self.mcmc = mcmc
+        return mcmc 
+
+    def get_observable_expectation(self, observable: callable, skip_init:int= 100): 
+        if self.mcmc : 
+            return observable_expectation(observable, self.mcmc, skip_init)
+        else :
+            raise ValueError(f"No saved MCMC, set 'save_mcmc= True' in '{self}.run()'")

@@ -403,6 +403,19 @@ def get_random_state(num_spins: int) -> str:
     bin_next_state = f"{next_state:0{num_spins}b}"
     return bin_next_state
 
+def observable_expectation(
+    observable: callable, mcmc_chain: MCMCChain, skip_init: int = 100
+):
+
+    sample_observable = []
+    for s in mcmc_chain.accepted_states:
+
+        sample_observable.append(observable(s))
+
+    sample_observable = np.array(sample_observable)
+
+    return sample_observable.mean(dtype=float)  # , sample_observable.var(dtype= float)
+
 
 ###########################################################################################
 ## VISUALISATIONS AND PLOTTING ##
